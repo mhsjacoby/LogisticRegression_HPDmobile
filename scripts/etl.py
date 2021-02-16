@@ -13,11 +13,6 @@ Outputs: train/test split dataframes (self.train and self.test)
 
 TODO: 
     - Write function to combine multiple hubs
-    #//- Modify load_data/read_in_csvs to read in test and train data
-    #// - Write logging function
-    #// - Write function to read in existing train/test files
-    #// - Write function to write train/test data to file
-    #// - Make data_path take in multiple files
 """
 
 import os
@@ -47,13 +42,11 @@ class ETL(DataBasics):
 
         self.home = home
         self.get_directories()
-
         self.configs = None
         self.days = []
         self.train, self.test = None, None
 
         self.load_data(data_type=data_type)
-
 
     def load_data(self, data_type):
         """Checks if the data type specified exists, decides how to load the data.
@@ -65,63 +58,49 @@ class ETL(DataBasics):
 
         returns: Nothing
         """
-
-        dt1 = data_type.split(" ")[0]
-
+        dt1 = data_type.split(' ')[0]
         check_name = os.path.join(self.data_dir, f'{dt1}_{self.home}.csv')
         data_exists = os.path.exists(check_name)
 
         if data_exists:
-
             if data_type == 'train':
                 self.train = self.read_csvs(data_type)
-
             elif data_type == 'test':
                 self.test = self.read_csvs(data_type)
-
             elif dt1 == 'train' or dt1 == 'test':
                 self.train = self.read_csvs('train')
                 self.test = self.read_csvs('test')
-
             else:
                 print(f'Unknown datatype {data_type}. Exiting program.')
                 sys.exit()
-
         else:
-
             if dt1 == 'train' or dt1 == 'test':
                 df = self.create_new_datafiles()
                 self.train, self.test = self.get_train_test(df)
                 self.write_data()
-
             else:
                 print(f'Unknown datatype {data_type}. Exiting program.')
                 sys.exit()
-
 
     def read_csvs(self, data_type):
         """Reads in previously created train or test data.
 
         returns: requested data file as pandas df
         """
-
         data_files = glob(os.path.join(self.data_dir, f'{data_type}_{self.home}.csv'))
-
         if len(data_files) == 0:
             print(f'No {data_type} files for {self.home}. Exiting program.')
             sys.exit()
 
         data_path = data_files[0]
-
         if len(data_files) > 1:
-            print(f'{len(data_files)} {data_type} files for {self.home}.\
-                \nUsing: {os.path.basename(data_path)}.')
+            print(f'\t{len(data_files)} {data_type} files for {self.home}.\n' \
+                '\tUsing: {os.path.basename(data_path)}.')
 
         print(f'Loading {data_type} data...')
         data_type_df = pd.read_csv(data_path, index_col='timestamp')
 
         return data_type_df
-
 
     def create_new_datafiles(self):
         """Sets up the conditions to read in raw inferences.
@@ -131,8 +110,7 @@ class ETL(DataBasics):
         Creates new train/test data through self.read_infs.
 
         returns: pandas df (with all days)
-        """
-        
+        """ 
         config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
         
         self.format_logs(log_type='ETL', home=self.home)
@@ -140,11 +118,9 @@ class ETL(DataBasics):
         self.days = self.get_days(self.configs['start_end'])
 
         data_path = os.path.join(self.raw_data, f'{home}_RS4_prob.csv')
-
         df = self.read_infs(data_path=data_path)
         
         return df
-
 
     def read_infs(self, data_path, fill_nan=True, resample_rate='5min', thresh=0.5):
         """ Reads in raw inferences from hub level CSV.
@@ -154,7 +130,6 @@ class ETL(DataBasics):
 
         returns: pandas df
         """
-
         logging.info(f'Reading inferences from {data_path}')
 
         df = pd.read_csv(data_path, index_col="timestamp")
@@ -164,14 +139,12 @@ class ETL(DataBasics):
     
         if fill_nan:
             df = df.fillna(0)
-
         else:
             df = df.dropna()
 
         df = self.create_lags(df)
 
         return df
-
 
     def create_lags(self, df, lag_hours=8, min_inc=5):
         """Creates lagged occupancy variable
@@ -181,7 +154,6 @@ class ETL(DataBasics):
         
         return: lagged df
         """
-
         occ_series = df['occupied']
         logging.info(f'Creating data with a lag of {lag_hours} hours.')
 
@@ -191,7 +163,6 @@ class ETL(DataBasics):
 
         return df
 
-
     def get_train_test(self, DF):
         """Splits data into train and test sets.
 
@@ -200,7 +171,6 @@ class ETL(DataBasics):
 
         returns: training set and testing set
         """
-
         df = DF.copy()
         df['date'] = pd.to_datetime(df.index) 
         df.insert(loc=0, column='day', value=df['date'].dt.date)
@@ -226,25 +196,20 @@ class ETL(DataBasics):
 
         returns: nothing
         """
-
-        os.makedirs(self.data_dir, exist_ok=True)
-    
+        os.makedirs(self.data_dir, exist_ok=True)   
         train_fname = os.path.join(self.data_dir, f'train_{self.home}.csv')
         test_fname = os.path.join(self.data_dir, f'test_{self.home}.csv')
 
         self.train.to_csv(train_fname, index_label='timestamp')
         self.test.to_csv(test_fname, index_label='timestamp')
         
-
     def combine_hubs(self):
         """Write function to take in raw inferences for all hubs specfied in config.yaml file.
         """
         pass
 
-
     def main(self):
         pass
-
 
 
 if __name__ == '__main__':
@@ -253,13 +218,10 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
     args = parser.parse_args()
-    
-    home = args.home
-    data_type = args.data_type
 
-    Data = ETL(home, data_type=data_type)
+    Data = ETL(
+            home=args.home,
+            data_type=args.data_type
+            )
     print(Data.configs)
     print(Data.test.columns)
-
-
-    
