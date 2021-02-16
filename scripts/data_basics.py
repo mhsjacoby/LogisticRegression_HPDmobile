@@ -44,11 +44,10 @@ class DataBasics():
             sys.exit()
 
         config_file_path = config_files[0]
-        logging.info(f'{len(config_files)} ETL configuration file(s).')
-        logging.info(f'Using: {os.path.basename(config_file_path)}')
+        logging.info(f'{len(config_files)} ETL configuration file(s).\
+                    \nUsing: {os.path.basename(config_file_path)}')
 
         with open(config_file_path) as f:
-            # config = json.load(f)
             config = yaml.safe_load(f)
 
         return config
@@ -66,7 +65,7 @@ class DataBasics():
             filename=os.path.join(self.log_save_dir, f'{log_type}_{home}.log'),
             level=logging.INFO,
             format='%(message)s',
-            datefmt='%Y-%m-%d'
+            datefmt='%Y-%m-%d',
             )
 
         logging.info(f'\n\t\t##### NEW RUN #####\n{date.today()}')
