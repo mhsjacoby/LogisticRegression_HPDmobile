@@ -1,0 +1,5 @@
+# H1_train_config.yaml
+
+penalty: [l1]
+solver: [liblinear]
+C: [0.1, 1, 10]

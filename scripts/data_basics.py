@@ -11,7 +11,8 @@ contains basic functions for logging, getting configuration files, getting stora
 import os
 import sys
 import csv
-import json
+# import json
+import yaml
 import argparse
 from glob import glob
 import pandas as pd
@@ -46,7 +47,8 @@ class DataBasics():
         logging.info(f'Using: {os.path.basename(config_file_path)}')
 
         with open(config_file_path) as f:
-            config = json.load(f)
+            # config = json.load(f)
+            config = yaml.safe_load(f)
 
         return config
 

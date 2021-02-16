@@ -1,12 +1,16 @@
 """
-etl_LRmodel.py
+etl.py
 Author: Maggie Jacoby
 Base code provided by Jasmine Garland
 February, 2021
 
 Extract-Transform-Load class for logistic regression models 
+Uses DataBasics as parent class
 
-Outputs: train/test split dataframes
+This script can be run alone, to create the csv train/test sets,
+or it can be called in train.py or test.py to load and/or create the sets.
+
+Outputs: train/test split dataframes (self.train and self.test)
 
 TODO: 
     - Write function to combine multiple hubs
@@ -126,7 +130,7 @@ class ETL(DataBasics):
         returns: full df
         """
         
-        config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*'))
+        config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
         
         self.format_logs(log_type='ETL', home=self.home)
         self.configs = self.read_config(config_files=config_files)
@@ -248,7 +252,8 @@ if __name__ == '__main__':
     data_type = args.data_type
 
     Data = ETL(home, data_type=data_type)
-    print(Data.test)
+    print(Data.configs)
+    print(Data.test.columns)
 
 
     
