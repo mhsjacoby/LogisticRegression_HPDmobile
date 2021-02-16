@@ -1,26 +1,27 @@
 """
 data_basics.py
 Author: Maggie Jacoby
-February, 2021
-
-Parent class for ETL, TrainModel, and TestModel
-contains basic functions for logging, getting configuration files, getting storage directories, etc
-
+Last update: 2021-02-16
 """
 
 import os
 import sys
 import csv
-# import json
 import yaml
-import argparse
-from glob import glob
-import pandas as pd
-from datetime import datetime, date
 import logging
+import argparse
+import pandas as pd
+from glob import glob
+from datetime import datetime, date
 
 
 class DataBasics():
+    """Parent class for ETL, TrainModel, and TestModel.
+    
+    Contains basic functions for logging, getting configuration files, 
+    getting storage directory locations, and getting list of days.
+    """ 
+
 
     def get_directories(self):
         parent_dir = os.path.dirname(os.getcwd())
@@ -33,8 +34,8 @@ class DataBasics():
 
 
     def read_config(self, config_files):
-        """
-        reads in the configuration file
+        """Reads in the configuration file (*.yaml).
+        
         returns: configuration parameters
         """
 
@@ -54,6 +55,10 @@ class DataBasics():
 
 
     def format_logs(self, log_type, home):
+        """Creates log object.
+
+        returns: nothing
+        """
 
         os.makedirs(self.log_save_dir, exist_ok=True)
 
@@ -68,8 +73,10 @@ class DataBasics():
 
 
     def get_days(self, start_end):
-        """
-        Returns: a list of all days between start/end in config file
+        """Gets all days to use for the training or testing.
+
+        If multiple lists of start/end exist, it joins them together. 
+        Returns: a list of all days between start/end in config file.
         """
 
         all_days = []

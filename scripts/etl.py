@@ -24,10 +24,10 @@ import os
 import sys
 import csv
 import argparse
-from glob import glob
-import pandas as pd
-from datetime import datetime, date
 import logging
+import pandas as pd
+from glob import glob
+from datetime import datetime, date
 
 from data_basics import DataBasics
 
