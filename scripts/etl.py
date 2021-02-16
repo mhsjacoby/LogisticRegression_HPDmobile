@@ -39,7 +39,6 @@ class ETL(DataBasics):
     """
 
     def __init__(self, home, data_type='train and test'):
-
         self.home = home
         self.get_directories()
         self.configs = None
