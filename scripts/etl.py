@@ -55,7 +55,7 @@ class ETL(DataBasics):
         Sets values of self.train and/or self.test by reading in or create new.
         Can load train and/or test, but if creating, it creates both.
 
-        returns: Nothing
+        Returns: Nothing
         """
         dt1 = data_type.split(' ')[0]
         check_name = os.path.join(self.data_dir, f'{dt1}_{self.home}.csv')
@@ -84,7 +84,7 @@ class ETL(DataBasics):
     def read_csvs(self, data_type):
         """Reads in previously created train or test data.
 
-        returns: requested data file as pandas df
+        Returns: requested data file as pandas df
         """
         data_files = glob(os.path.join(self.data_dir, f'{data_type}_{self.home}.csv'))
         if len(data_files) == 0:
@@ -108,7 +108,7 @@ class ETL(DataBasics):
         It reads configuration files and creates the list of days to use.
         Creates new train/test data through self.read_infs.
 
-        returns: pandas df (with all days)
+        Returns: pandas df (with all days)
         """ 
         config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
         
@@ -127,7 +127,7 @@ class ETL(DataBasics):
         This is called from self.crete_new_datafiles when no train/test data exist.
         This function fills or drops nans, resamples data, and calls create_lag function.
 
-        returns: pandas df
+        Returns: pandas df
         """
         logging.info(f'Reading inferences from {data_path}')
 
@@ -151,7 +151,7 @@ class ETL(DataBasics):
         Takes in a df and makes lags up to (and including) lag_hours.
         The df is in 5 minute increments (by default), so lag is 12*hour.
         
-        return: lagged df
+        Returns: lagged df
         """
         occ_series = df['occupied']
         logging.info(f'Creating data with a lag of {lag_hours} hours.')
@@ -168,7 +168,7 @@ class ETL(DataBasics):
         Data is time series, so splits on day, not randomly.
         Also subsets based on the list of days specified by self.days.
 
-        returns: training set and testing set
+        Returns: training set and testing set
         """
         df = DF.copy()
         df['date'] = pd.to_datetime(df.index) 
