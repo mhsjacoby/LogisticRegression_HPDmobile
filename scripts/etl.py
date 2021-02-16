@@ -1,8 +1,7 @@
 """
 etl.py
 Author: Maggie Jacoby
-Base code provided by Jasmine Garland
-February, 2021
+Last update: 2021-02-16
 
 Extract-Transform-Load class for logistic regression models 
 Uses DataBasics as parent class
@@ -24,7 +23,6 @@ TODO:
 import os
 import sys
 import csv
-import json
 import argparse
 from glob import glob
 import pandas as pd
@@ -35,13 +33,14 @@ from data_basics import DataBasics
 
 
 class ETL(DataBasics):
-    """
-    Upon initialization, this class gets the full names for all storage locations, 
-    then checks to see if the requested data type exists (train or test).
-    
+    """All functions to extract, transform, and load the train and test data sets.
+
+    Upon initialization, this class gets the full names for all storage locations.     
     If a particular data type is requested (train or test),
     it either loads the data from existing csvs, 
-    or loads the raw data, extracts the relevant information, and writes csvs.
+    or (if none exist) loads the raw data, extracts the relevant information, and writes csvs.
+
+    This class is used in train.py, test.py, and explore.py
     """
 
     def __init__(self, home, data_type='train and test'):
@@ -57,10 +56,12 @@ class ETL(DataBasics):
 
 
     def load_data(self, data_type):
-        """
-        Checks if the data type specified exists.
-        Sets values of self.train and/or self.test
-        If previous data exists (as csv), it loads them, else creates new and writes csvs.
+        """Checks if the data type specified exists, decides how to load the data.
+
+        If previous csvs exist for train/test, loads the one(s) requested,
+        otherwise creates new ones and writes csvs.
+        Sets values of self.train and/or self.test by reading in or create new.
+        Can load train and/or test, but if creating, it creates both.
 
         returns: Nothing
         """
@@ -99,8 +100,7 @@ class ETL(DataBasics):
 
 
     def read_csvs(self, data_type):
-        """
-        Reads in previously created train or test data
+        """Reads in previously created train or test data.
 
         returns: requested data file as pandas df
         """
@@ -114,7 +114,8 @@ class ETL(DataBasics):
         data_path = data_files[0]
 
         if len(data_files) > 1:
-            print(f'{len(data_files)} {data_type} files for {self.home}.\nUsing: {os.path.basename(data_path)}.')
+            print(f'{len(data_files)} {data_type} files for {self.home}.\
+                \nUsing: {os.path.basename(data_path)}.')
 
         print(f'Loading {data_type} data...')
         data_type_df = pd.read_csv(data_path, index_col='timestamp')
@@ -123,33 +124,35 @@ class ETL(DataBasics):
 
 
     def create_new_datafiles(self):
-        """
-        If no data files exist, reads configuration files,
-        creates new train/test data
+        """Sets up the conditions to read in raw inferences.
 
-        returns: full df
+        This is only called if no test/train csv data exists yet.
+        It reads configuration files and creates the list of days to use.
+        Creates new train/test data through self.read_infs.
+
+        returns: pandas df (with all days)
         """
         
         config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
         
         self.format_logs(log_type='ETL', home=self.home)
         self.configs = self.read_config(config_files=config_files)
+        self.days = self.get_days(self.configs['start_end'])
 
         data_path = os.path.join(self.raw_data, f'{home}_RS4_prob.csv')
 
         df = self.read_infs(data_path=data_path)
-        self.days = self.get_days(self.configs['start_end'])
-
+        
         return df
 
 
     def read_infs(self, data_path, fill_nan=True, resample_rate='5min', thresh=0.5):
-        """
-        if no test/train data exists yet, reads in raw inferences
-        fills or drops nans and resamples
-        calls create lag function
+        """ Reads in raw inferences from hub level CSV.
 
-        returns: df
+        This is called from self.crete_new_datafiles when no train/test data exist.
+        This function fills or drops nans, resamples data, and calls create_lag function.
+
+        returns: pandas df
         """
 
         logging.info(f'Reading inferences from {data_path}')
@@ -161,6 +164,7 @@ class ETL(DataBasics):
     
         if fill_nan:
             df = df.fillna(0)
+
         else:
             df = df.dropna()
 
@@ -169,11 +173,11 @@ class ETL(DataBasics):
         return df
 
 
-    def create_lags(self, df, lag_hours=8):
-        """
-        creates lagged occupancy variable for every hour
-        up to (and including) lag_hours
-        df is in 5 minute increments, so lag is 12*hour
+    def create_lags(self, df, lag_hours=8, min_inc=5):
+        """Creates lagged occupancy variable
+
+        Takes in a df and makes lags up to (and including) lag_hours.
+        The df is in 5 minute increments (by default), so lag is 12*hour.
         
         return: lagged df
         """
@@ -183,15 +187,16 @@ class ETL(DataBasics):
 
         for i in range(1, lag_hours+1):
             lag_name = f'lag{i}_occupied'
-            df[lag_name] = occ_series.shift(periods=12*i)
+            df[lag_name] = occ_series.shift(periods=min_inc*i)
 
         return df
 
 
     def get_train_test(self, DF):
-        """
-        splits data into train and test sets
-        data is time series, so splits on day, not randomly
+        """Splits data into train and test sets.
+
+        Data is time series, so splits on day, not randomly.
+        Also subsets based on the list of days specified by self.days.
 
         returns: training set and testing set
         """
@@ -217,8 +222,7 @@ class ETL(DataBasics):
 
 
     def write_data(self):
-        """
-        Writes csvs with the newly created train/test data
+        """Writes csvs with the newly created train/test data.
 
         returns: nothing
         """
@@ -233,6 +237,8 @@ class ETL(DataBasics):
         
 
     def combine_hubs(self):
+        """Write function to take in raw inferences for all hubs specfied in config.yaml file.
+        """
         pass
 
 
