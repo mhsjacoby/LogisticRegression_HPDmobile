@@ -22,8 +22,11 @@ class DataBasics():
     getting storage directory locations, and getting list of days.
     """ 
 
-
     def get_directories(self):
+        """Gets names of all directories, relative to the current script.
+        
+        Returns: nothing
+        """
         parent_dir = os.path.dirname(os.getcwd())
 
         self.config_dir = os.path.join(parent_dir, 'configuration_files')
@@ -32,19 +35,17 @@ class DataBasics():
         self.models_dir = os.path.join(parent_dir, 'models')
         self.raw_data = os.path.join(parent_dir, 'raw_data_files')
 
-
-    def read_config(self, config_files):
+    def read_config(self, config_files, config_type='ETL'):
         """Reads in the configuration file (*.yaml).
         
-        returns: configuration parameters
+        Returns: configuration parameters
         """
-
         if len(config_files) == 0:
-            print(f'No ETL configuration file for {self.home}. Exiting program.')
+            print(f'No {config_type} configuration file for {self.home}. Exiting program.')
             sys.exit()
 
         config_file_path = config_files[0]
-        logging.info(f'{len(config_files)} ETL configuration file(s).\
+        logging.info(f'{len(config_files)} {config_type} configuration file(s).\
                     \nUsing: {os.path.basename(config_file_path)}')
 
         with open(config_file_path) as f:
@@ -52,13 +53,11 @@ class DataBasics():
 
         return config
 
-
     def format_logs(self, log_type, home):
         """Creates log object.
 
-        returns: nothing
+        Returns: nothing
         """
-
         os.makedirs(self.log_save_dir, exist_ok=True)
 
         logging.basicConfig(
@@ -67,9 +66,7 @@ class DataBasics():
             format='%(message)s',
             datefmt='%Y-%m-%d',
             )
-
         logging.info(f'\n\t\t##### NEW RUN #####\n{date.today()}')
-
 
     def get_days(self, start_end):
         """Gets all days to use for the training or testing.
@@ -88,3 +85,14 @@ class DataBasics():
 
         logging.info(f'{len(all_days)} days, {len(start_end)} continuous period(s) \n{sorted(all_days)}')
         return sorted(all_days)
+
+    def split_xy(self, df):
+        """Split dataset to get predictors (X) and ground truth (y)
+
+        Returns: X: pandas df, and y: pandas Series
+        """ 
+        # return arrays instead??
+        y = df['occupied']
+        X = df[df.columns.difference(['occupied'], sort=False)]
+        
+        return X, y
