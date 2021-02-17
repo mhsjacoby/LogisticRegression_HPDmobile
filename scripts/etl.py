@@ -41,7 +41,8 @@ class ETL(DataBasics):
         self.configs = None
         self.days = []
         self.train, self.test = None, None
-
+        
+        self.format_logs(log_type='ETL', home=self.home)
         self.load_data(data_type=data_type)
 
     def load_data(self, data_type):
@@ -110,7 +111,7 @@ class ETL(DataBasics):
         """ 
         config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
         
-        self.format_logs(log_type='ETL', home=self.home)
+
         self.configs = self.read_config(config_files=config_files)
         self.days = self.get_days(self.configs['start_end'])
 
