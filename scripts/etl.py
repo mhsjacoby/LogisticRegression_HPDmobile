@@ -10,9 +10,6 @@ This script can be run alone, to create the csv train/test sets,
 or it can be called in train.py or test.py to load and/or create the sets.
 
 Outputs: train/test split dataframes (self.train and self.test)
-
-TODO: 
-    - Write function to combine multiple hubs
 """
 
 import os
@@ -94,11 +91,12 @@ class ETL(DataBasics):
         data_path = data_files[0]
         if len(data_files) > 1:
             print(f'\t{len(data_files)} {data_type} files for {self.home}.\n' \
-                '\tUsing: {os.path.basename(data_path)}.')
+                f'\tUsing: {os.path.basename(data_path)}.')
 
+        logging.info(f'Using: {os.path.basename(data_path)} for {data_type} data.')        
         print(f'Loading {data_type} data...')
-        data_type_df = pd.read_csv(data_path, index_col='timestamp')
 
+        data_type_df = pd.read_csv(data_path, index_col='timestamp')
         return data_type_df
 
     def create_new_datafiles(self):
@@ -118,7 +116,6 @@ class ETL(DataBasics):
 
         data_path = os.path.join(self.raw_data, f'{home}_RS4_prob.csv')
         df = self.read_infs(data_path=data_path)
-        
         return df
 
     def read_infs(self, data_path, fill_nan=True, resample_rate='5min', thresh=0.5):
@@ -142,7 +139,6 @@ class ETL(DataBasics):
             df = df.dropna()
 
         df = self.create_lags(df)
-
         return df
 
     def create_lags(self, df, lag_hours=8, min_inc=5):
@@ -159,7 +155,6 @@ class ETL(DataBasics):
         for i in range(1, lag_hours+1):
             lag_name = f'lag{i}_occupied'
             df[lag_name] = occ_series.shift(periods=min_inc*i)
-
         return df
 
     def get_train_test(self, DF):
@@ -181,12 +176,11 @@ class ETL(DataBasics):
         train_days = [datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days] 
         test_days = [datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days] 
 
-        train_df = df[df['day'].isin(train_days)]
-        test_df = df[df['day'].isin(test_days)]
-
         logging.info(f'Training: {len(train_days)} days with {len(train_df)} datapoints.')
         logging.info(f'Testing: {len(test_days)} days with {len(test_df)} datapoints.')
-
+        
+        train_df = df[df['day'].isin(train_days)]
+        test_df = df[df['day'].isin(test_days)]
         return train_df, test_df
 
 
@@ -203,7 +197,7 @@ class ETL(DataBasics):
         self.test.to_csv(test_fname, index_label='timestamp')
         
     def combine_hubs(self):
-        """Write function to take in raw inferences for all hubs specfied in config.yaml file.
+        """Write function to take in raw inferences for all hubs specfied in config file.
         """
         pass
 
