@@ -7,7 +7,7 @@ Extract-Transform-Load class for logistic regression models
 Uses DataBasics as parent class
 
 This script can be run alone, to create the csv train/test sets,
-or it can be called in train.py or test.py to load and/or create the sets.
+or it can be called in train.py, test.py, or explore.py to load and/or create the sets.
 
 Outputs: train/test split dataframes (self.train and self.test)
 """
@@ -94,7 +94,7 @@ class ETL(DataBasics):
                 f'\tUsing: {os.path.basename(data_path)}.')
 
         logging.info(f'Using: {os.path.basename(data_path)} for {data_type} data.')        
-        print(f'Loading {data_type} data...')
+        print(f'Loading {data_type} data from home {self.home}...')
 
         data_type_df = pd.read_csv(data_path, index_col='timestamp')
         return data_type_df
@@ -114,7 +114,7 @@ class ETL(DataBasics):
         self.configs = self.read_config(config_files=config_files)
         self.days = self.get_days(self.configs['start_end'])
 
-        data_path = os.path.join(self.raw_data, f'{home}_RS4_prob.csv')
+        data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
         df = self.read_infs(data_path=data_path)
         return df
 
@@ -126,7 +126,7 @@ class ETL(DataBasics):
 
         Returns: pandas df
         """
-        logging.info(f'Reading inferences from {data_path}')
+        logging.info(f'Reading inferences from {os.path.basename(data_path)}')
 
         df = pd.read_csv(data_path, index_col="timestamp")
         df.index = pd.to_datetime(df.index)
@@ -173,15 +173,32 @@ class ETL(DataBasics):
         train_size = int(len(self.days) * 0.7) - 1
         train_days = self.days[ :train_size]
         test_days = self.days[train_size: ]
-        train_days = [datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days] 
-        test_days = [datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days] 
+        train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])
+        test_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days])
 
-        logging.info(f'Training: {len(train_days)} days with {len(train_df)} datapoints.')
-        logging.info(f'Testing: {len(test_days)} days with {len(test_df)} datapoints.')
+        logging.info(f'Training: {len(train_days)} days from {train_days[0]} to {train_days[-1]}.')
+        logging.info(f'Testing: {len(test_days)} days from {test_days[0]} to {test_days[-1]}.')
         
         train_df = df[df['day'].isin(train_days)]
         test_df = df[df['day'].isin(test_days)]
         return train_df, test_df
+
+    def get_days(self, start_end):
+        """Gets all days to use for the training or testing.
+
+        If multiple lists of start/end exist, it joins them together. 
+        Returns: a list of all days between start/end in config file.
+        """
+        all_days = []
+
+        for st in start_end:
+            start, end = st[0], st[1]
+            pd_days = pd.date_range(start=start, end=end).tolist()
+            days = [d.strftime('%Y-%m-%d') for d in pd_days]
+            all_days.extend(days)
+
+        logging.info(f'{len(all_days)} days from {len(start_end)} continuous period(s).')
+        return sorted(all_days)
 
 
     def write_data(self):
@@ -195,13 +212,20 @@ class ETL(DataBasics):
 
         self.train.to_csv(train_fname, index_label='timestamp')
         self.test.to_csv(test_fname, index_label='timestamp')
+
+    def split_xy(self, df):
+        """Split dataset to get predictors (X) and ground truth (y)
+
+        Returns: X: pandas df, and y: pandas Series
+        """ 
+        y = df['occupied']
+        X = df[df.columns.difference(['occupied'], sort=False)]
+        X.drop(columns = ['day'], inplace=True)
+        return X, y
         
     def combine_hubs(self):
         """Write function to take in raw inferences for all hubs specfied in config file.
         """
-        pass
-
-    def main(self):
         pass
 
 
@@ -216,5 +240,3 @@ if __name__ == '__main__':
             home=args.home,
             data_type=args.data_type
             )
-    print(Data.configs)
-    print(Data.test.columns)
