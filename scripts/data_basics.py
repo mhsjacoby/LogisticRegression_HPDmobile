@@ -24,7 +24,7 @@ class DataBasics():
 
     def get_directories(self):
         """Gets names of all directories, relative to the current script.
-        
+
         Returns: nothing
         """
         parent_dir = os.path.dirname(os.getcwd())
@@ -74,7 +74,6 @@ class DataBasics():
         If multiple lists of start/end exist, it joins them together. 
         Returns: a list of all days between start/end in config file.
         """
-
         all_days = []
 
         for st in start_end:
@@ -91,8 +90,6 @@ class DataBasics():
 
         Returns: X: pandas df, and y: pandas Series
         """ 
-        # return arrays instead??
         y = df['occupied']
         X = df[df.columns.difference(['occupied'], sort=False)]
-        
         return X, y
