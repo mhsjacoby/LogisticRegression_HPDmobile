@@ -59,13 +59,24 @@ class TrainModel(DataBasics):
         Data = ETL(self.home, data_type='train')
         return Data.train
 
+    def set_LR_parameters(self):
+        """Sets the model parameters as specified in the configuration file.
+
+        Only takes in one set of parameters.
+        Returns: sklearn logistic regression model object (not fit)
+        """
+        clf = LogisticRegression().set_params(**self.configs)
+
+        return clf
+
     def train_model(self, print_coeffs):
         """Trains a logistic regression model.
 
         Uses default parameters, or gets params from ParameterGrid (if specified).
         Returns: sklearn logistic regression model object
         """
-        logit_clf = LogisticRegression(solver='saga', penalty='l1', max_iter=1000, C=.02)
+        logit_clf = self.set_LR_parameters()
+        # logit_clf = LogisticRegression(solver='saga', penalty='l1', max_iter=1000, C=.02)
 
         self.X = self.X.drop(columns = ['day'])
         X = self.X.to_numpy()
@@ -81,25 +92,11 @@ class TrainModel(DataBasics):
             print(coeff_msg)
             print(f'train score: {logit_clf.score(X, y)}')
         return logit_clf
-
-    def set_LR_parameters(self, clf):
-        pass
-            # logit_clf = LogisticRegression(penalty='l1', solver='liblinear', C=0.02)
-        # parameter_grid = ParameterGrid(self.configs)
-        # # sys.exit()
         
-        # # logit_clf = LogisticRegression()
-        # for param in parameter_grid:
-        #     logit_clf = LogisticRegression(**param)
-        # for k, v in self.configs.items():
-            # logit_clf = LogisticRegression().set_params(**{k: v})
-            # print(logit_clf)
-        
-
     def get_filename(self, model_save_dir):
         """Gets model number if filename not specified.
 
-        Increments name based on highest number existing.
+        Increments name based on total number of models.
         Returns: filename to save model as 
         """
         models = glob(os.path.join(model_save_dir, '*.pickle'))
