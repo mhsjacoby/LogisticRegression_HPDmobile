@@ -1,7 +1,7 @@
 """
 train.py
 Authors: Maggie Jacoby and Jasmine Garland
-Last update: 2021-02-16
+Last update: 2021-02-17
 """
 
 import os
@@ -18,7 +18,6 @@ from datetime import datetime, date
 
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
-from sklearn.model_selection import ParameterGrid 
 
 from data_basics import DataBasics
 from etl import ETL 
@@ -31,25 +30,30 @@ class TrainModel(DataBasics):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, home, save_fname=None, overwrite=False, print_coeffs=False):
+    def __init__(self, home, save_fname=None, overwrite=False, print_coeffs=False, config_file=None):
 
         self.home = home
         self.get_directories()
         self.configs = None
 
-        train_data = self.get_train_data()
+        train_data = self.get_train_data(config_file)
         self.X, self.y = self.split_xy(train_data)
         self.model = self.train_model(print_coeffs=print_coeffs)
         self.save_model(model=self.model, model_name=save_fname, overwrite=overwrite)
 
-    def get_train_data(self):
+    def get_train_data(self, config_file=None):
         """Imports training data from ETL class
 
         Returns: training dataset
         """
         self.format_logs(log_type='Train', home=self.home)
 
-        config_files = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
+        if not config_file:
+            config_files = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
+        else:
+            print(f'Configuration file specified: {config_file}.')
+            config_files = glob(os.path.join(self.config_dir, config_file))
+
         self.configs = self.read_config(config_files=config_files, config_type='Train')
 
         logging.info('Parameters used:')
@@ -66,7 +70,6 @@ class TrainModel(DataBasics):
         Returns: sklearn logistic regression model object (not fit)
         """
         clf = LogisticRegression().set_params(**self.configs)
-
         return clf
 
     def train_model(self, print_coeffs):
@@ -150,11 +153,13 @@ if __name__ == '__main__':
     parser.add_argument('-save_fname', '--save_fname', default=None, help='Filename to save model to')
     parser.add_argument('-overwrite', '--overwrite', default=False, type=bool, help='Overwrite model if it exists?')
     parser.add_argument('-print_coeffs', '--print_coeffs', default=False, type=bool, help='Print model coefficients?')
+    parser.add_argument('-config_file', '--config_file', default=None, help='Configuration file to use')
     args = parser.parse_args()
     
     model = TrainModel(
                     home=args.home,
                     save_fname=args.save_fname,
                     overwrite=args.overwrite,
-                    print_coeffs=args.print_coeffs
+                    print_coeffs=args.print_coeffs,
+                    config_file=args.config_file,
                     )
