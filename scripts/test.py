@@ -17,18 +17,17 @@ from glob import glob
 from datetime import datetime, date
 from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
 
-
-from data_basics import DataBasics
+from data_basics import ModelBasics, get_model_metrics
 from train import TrainModel
 from etl import ETL 
 
 
-class TestModel(DataBasics):
-"""Tests a logistic regression model.
+class TestModel(ModelBasics):
+    """Tests a logistic regression model.
 
-Reads in the pickled model and tests on unseen data.
-Can cross train and test on different homes, or same home.
-"""
+    Reads in the pickled model and tests on unseen data.
+    Can cross train and test on different homes, or same home.
+    """
 
     def __init__(self, train_home, test_home=None, model_to_test=None):
 
@@ -39,13 +38,10 @@ Can cross train and test on different homes, or same home.
             self.test_home = test_home
 
         self.get_directories()
-        self.configs = None
-
-        test_data = self.get_test_data()
-        self.X, self.y = self.split_xy(test_data)
+        self.format_logs(log_type='Test', home=self.train_home)
+        self.X, self.y = self.get_test_data()
         self.model = self.import_model(model_to_test)
         self.test_model(logit_clf=self.model)
-
 
 
     def get_test_data(self):
@@ -53,10 +49,11 @@ Can cross train and test on different homes, or same home.
 
         Returns: testing dataset
         """
-        self.format_logs(log_type='Test', home=self.train_home)
+        logging.info(f'Testing with data from {self.test_home}.')
 
         Data = ETL(self.test_home, data_type='test')
-        return Data.test
+        X, y = Data.split_xy(Data.test)
+        return X, y
 
 
     def import_model(self, model_to_test):
@@ -89,21 +86,10 @@ Can cross train and test on different homes, or same home.
 
         Returns: nothing
         """
-        self.X = self.X.drop(columns = ['day'])
         X = self.X.to_numpy()
         y = self.y.to_numpy()
 
-        probs = logit_clf.predict(X)
-        y_hat = pd.Series(probs).apply(lambda x: 1 if (x > 0.5) else 0)
-
-        conf_mat = pd.DataFrame(confusion_matrix(y_hat, y), 
-                            columns = ['Unoccupied', 'Occupied'], index = ['Unoccupied', 'Occupied'])
-        logging.info(f'\n{conf_mat}\n')
-        logging.info(f'Test score: {logit_clf.score(X, y):.4} on {len(X)} predictions')
-        logging.info(f'RMSE: {np.sqrt(mean_squared_error(y, y_hat))}')
-
-        print(f'RMSE: {np.sqrt(mean_squared_error(y, y_hat))}')
-        
+        predicted_probabilities = get_model_metrics(logit_clf, X, y, pred_type='Test')
 
 
 if __name__ == '__main__':

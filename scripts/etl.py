@@ -21,10 +21,10 @@ import pandas as pd
 from glob import glob
 from datetime import datetime, date
 
-from data_basics import DataBasics
+from data_basics import ModelBasics
 
 
-class ETL(DataBasics):
+class ETL(ModelBasics):
     """All functions to extract, transform, and load the train and test data sets.
 
     Upon initialization, this class gets the full names for all storage locations.     
@@ -41,7 +41,7 @@ class ETL(DataBasics):
         self.configs = None
         self.days = []
         self.train, self.test = None, None
-        
+
         self.format_logs(log_type='ETL', home=self.home)
         self.load_data(data_type=data_type)
 
@@ -210,6 +210,7 @@ class ETL(DataBasics):
         os.makedirs(self.data_dir, exist_ok=True)   
         train_fname = os.path.join(self.data_dir, f'train_{self.home}.csv')
         test_fname = os.path.join(self.data_dir, f'test_{self.home}.csv')
+        logging.info(f'Writing data to {os.path.basename(train_fname)} and {os.path.basename(test_fname)}.')
 
         self.train.to_csv(train_fname, index_label='timestamp')
         self.test.to_csv(test_fname, index_label='timestamp')
@@ -221,7 +222,7 @@ class ETL(DataBasics):
         """ 
         y = df['occupied']
         X = df[df.columns.difference(['occupied'], sort=False)]
-        X.drop(columns = ['day'], inplace=True)
+        X = X.drop(columns = ['day'])
         return X, y
         
     def combine_hubs(self):

@@ -17,13 +17,13 @@ from glob import glob
 from datetime import datetime, date
 
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
+# from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
 
-from data_basics import DataBasics
+from data_basics import ModelBasics, get_model_metrics
 from etl import ETL 
 
 
-class TrainModel(DataBasics):
+class TrainModel(ModelBasics):
     """Trains a logistic regression model.
 
     Uses ETL to load the training data.
@@ -34,43 +34,50 @@ class TrainModel(DataBasics):
 
         self.home = home
         self.get_directories()
-        self.configs = None
-
-        train_data = self.get_train_data(config_file)
-        self.X, self.y = self.split_xy(train_data)
+        self.format_logs(log_type='Train', home=self.home)
+        config_file_list = self.pick_config_file(config_file)
+        self.configs = self.read_config(config_files=config_file_list, config_type='Train')
+        self.X, self.y = self.get_train_data()
         self.model = self.train_model(print_coeffs=print_coeffs)
         self.save_model(model=self.model, model_name=save_fname, overwrite=overwrite)
 
-    def get_train_data(self, config_file=None):
+
+    def pick_config_file(self, config_file=None):
+        """
+        """
+        if not config_file:
+            config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
+        else:
+            print(f'Configuration file specified: {config_file}.')
+            config_file_list = glob(os.path.join(self.config_dir, config_file))
+        
+        return config_file_list
+
+
+    def get_train_data(self):
         """Imports training data from ETL class
 
         Returns: training dataset
         """
-        self.format_logs(log_type='Train', home=self.home)
-
-        if not config_file:
-            config_files = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
-        else:
-            print(f'Configuration file specified: {config_file}.')
-            config_files = glob(os.path.join(self.config_dir, config_file))
-
-        self.configs = self.read_config(config_files=config_files, config_type='Train')
 
         logging.info('Parameters used:')
         for param in self.configs:
             logging.info(f'\t{param}: {self.configs[param]}')        
 
         Data = ETL(self.home, data_type='train')
-        return Data.train
+        X, y = Data.split_xy(Data.train)
+        return X, y
+
 
     def set_LR_parameters(self):
         """Sets the model parameters as specified in the configuration file.
 
         Only takes in one set of parameters.
-        Returns: sklearn logistic regression model object (not fit)
+        Returns: sklearn logistic regression model object (not fitted to data)
         """
         clf = LogisticRegression().set_params(**self.configs)
         return clf
+
 
     def train_model(self, print_coeffs):
         """Trains a logistic regression model.
@@ -81,25 +88,26 @@ class TrainModel(DataBasics):
         logit_clf = self.set_LR_parameters()
         # logit_clf = LogisticRegression(solver='saga', penalty='l1', max_iter=1000, C=.02)
 
-        self.X = self.X.drop(columns = ['day'])
         X = self.X.to_numpy()
         y = self.y.to_numpy()
         logit_clf.fit(X, y)
 
-        coeff_msg = f'{pd.Series(logit_clf.coef_[0], index = self.X.columns).to_string()}\n' \
+        coeff_msg = f'\nCoefficients:\n{pd.Series(logit_clf.coef_[0], index = self.X.columns).to_string()}\n' \
                         f'intercept\t{logit_clf.intercept_[0]}'
-        logging.info(f'\nCoefficients\n{coeff_msg}\n')
-        logging.info(f'Train score: {logit_clf.score(X, y):.4} on {len(X)} predictions')
-
+        logging.info(f'{coeff_msg}')
         if print_coeffs:
             print(coeff_msg)
-            print(f'train score: {logit_clf.score(X, y)}')
+
+        predicted_probabilities = get_model_metrics(logit_clf, X, y, pred_type='Train')
         return logit_clf
-        
+
+
     def get_filename(self, model_save_dir):
         """Gets model number if filename not specified.
 
         Increments name based on total number of models.
+        Params:
+
         Returns: filename to save model as 
         """
         models = glob(os.path.join(model_save_dir, '*.pickle'))
@@ -128,7 +136,7 @@ class TrainModel(DataBasics):
 
         if not os.path.isfile(save_name):
             pickle.dump(model, open(save_name, 'wb'))
-            print(f'Saving model to {save_name}') 
+            print(f'Saving model to {save_name}')
         else:
             if overwrite:
                 print(f'Model {fname} exists. Overwriting previous model with current one.')
@@ -142,9 +150,6 @@ class TrainModel(DataBasics):
                 sys.exit()
         logging.info(f'Saving model to: {os.path.relpath(save_name, start=self.models_dir)}')
 
-    def main(self):
-        pass
-
 
 if __name__ == '__main__':
 
@@ -152,7 +157,7 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-save_fname', '--save_fname', default=None, help='Filename to save model to')
     parser.add_argument('-overwrite', '--overwrite', default=False, type=bool, help='Overwrite model if it exists?')
-    parser.add_argument('-print_coeffs', '--print_coeffs', default=False, type=bool, help='Print model coefficients?')
+    parser.add_argument('-print_coeffs', '--print_coeffs', default=True, type=bool, help='Print model coefficients?')
     parser.add_argument('-config_file', '--config_file', default=None, help='Configuration file to use')
     args = parser.parse_args()
     

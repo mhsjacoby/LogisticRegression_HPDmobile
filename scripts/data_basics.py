@@ -10,12 +10,46 @@ import csv
 import yaml
 import logging
 import argparse
+import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
+from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
 
 
-class DataBasics():
+def get_model_metrics(logit_clf, X, y, pred_type='Train'):
+    """Stand-alone function to get metrics given a classifier.
+
+    Prints and logs metrics.
+    Returns: Model predictions
+    """
+
+    probs = logit_clf.predict(X)
+    y_hat = pd.Series(probs).apply(lambda x: 1 if (x > 0.5) else 0)
+
+    conf_mat = pd.DataFrame(confusion_matrix(y_hat, y), 
+                            columns = ['Vacant', 'Occupied'],
+                            index = ['Vacant', 'Occupied']
+                            )
+
+    conf_mat = pd.concat([conf_mat], keys=['Actual'], axis=0)
+    conf_mat = pd.concat([conf_mat], keys=['Predicted'], axis=1)
+
+    logging.info(f'\n{conf_mat}')
+
+    score = logit_clf.score(X, y)
+    RMSE = np.sqrt(mean_squared_error(y, y_hat))
+
+    results_msg = f'\n{pred_type} Results on {len(X)} predictions\n'\
+                    f'\tScore: {score:.4}\n' \
+                    f'\tRMSE: {RMSE:.4}'
+
+    logging.info(results_msg)
+    print(results_msg)
+    return probs
+
+
+class ModelBasics():
     """Parent class for ETL, TrainModel, and TestModel.
     
     Contains basic functions for logging, getting configuration files, 
@@ -40,10 +74,6 @@ class DataBasics():
         
         Returns: configuration parameters
         """
-
-
-
-
         if len(config_files) == 0:
             print(f'No {config_type} configuration file for {self.home}. Exiting program.')
             logging.info('No configuration file.')
@@ -55,7 +85,6 @@ class DataBasics():
 
         with open(config_file_path) as f:
             config = yaml.safe_load(f)
-
         return config
 
     def format_logs(self, log_type, home):
@@ -73,21 +102,5 @@ class DataBasics():
             )
         logging.info(f'\n\t\t##### NEW RUN #####\n{date.today()}')
 
-    def get_days(self, start_end):
-        """Gets all days to use for the training or testing.
-
-        If multiple lists of start/end exist, it joins them together. 
-        Returns: a list of all days between start/end in config file.
-        """
-        all_days = []
-
-        for st in start_end:
-            start, end = st[0], st[1]
-            pd_days = pd.date_range(start=start, end=end).tolist()
-            days = [d.strftime('%Y-%m-%d') for d in pd_days]
-            all_days.extend(days)
-
-        logging.info(f'{len(all_days)} days, {len(start_end)} continuous period(s) \n{sorted(all_days)}')
-        return sorted(all_days)
 
 
