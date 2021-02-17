@@ -40,6 +40,10 @@ class DataBasics():
         
         Returns: configuration parameters
         """
+
+
+
+
         if len(config_files) == 0:
             print(f'No {config_type} configuration file for {self.home}. Exiting program.')
             logging.info('No configuration file.')
@@ -86,11 +90,4 @@ class DataBasics():
         logging.info(f'{len(all_days)} days, {len(start_end)} continuous period(s) \n{sorted(all_days)}')
         return sorted(all_days)
 
-    def split_xy(self, df):
-        """Split dataset to get predictors (X) and ground truth (y)
 
-        Returns: X: pandas df, and y: pandas Series
-        """ 
-        y = df['occupied']
-        X = df[df.columns.difference(['occupied'], sort=False)]
-        return X, y
