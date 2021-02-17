@@ -1,12 +1,7 @@
 """
 test.py
-Author: Maggie Jacoby
-Base code provided by Jasmine Garland
-February, 2021
-
-Tests...  
-Inputs
-Outputs
+Authors: Maggie Jacoby and Jasmine Garland
+Last update: 2021-02-16
 """
 
 import os
@@ -20,12 +15,7 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
-
-from sklearn.linear_model import LogisticRegression
-# from sklearn.cluster import KMeans
 from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
-# from sklearn.feature_selection import SelectFromModel
-from sklearn.model_selection import ParameterGrid #KFold, GridSearchCV, RepeatedKFold
 
 
 from data_basics import DataBasics
@@ -34,6 +24,11 @@ from etl import ETL
 
 
 class TestModel(DataBasics):
+"""Tests a logistic regression model.
+
+Reads in the pickled model and tests on unseen data.
+Can cross train and test on different homes, or same home.
+"""
 
     def __init__(self, train_home, test_home=None, model_to_test=None):
 
@@ -91,7 +86,7 @@ class TestModel(DataBasics):
 
     def test_model(self, logit_clf):
         """Test the trained model on unseen data
-        
+
         Returns: nothing
         """
         self.X = self.X.drop(columns = ['day'])
