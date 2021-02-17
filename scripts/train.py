@@ -2,10 +2,6 @@
 train.py
 Authors: Maggie Jacoby and Jasmine Garland
 Last update: 2021-02-16
-
-Trains 
-Inputs
-Outputs
 """
 
 import os
@@ -29,6 +25,11 @@ from etl import ETL
 
 
 class TrainModel(DataBasics):
+    """Trains a logistic regression model.
+
+    Uses ETL to load the training data.
+    Writes a pickle file with the trained LR model at the end.
+    """
 
     def __init__(self, home, save_fname=None, overwrite=False, print_coeffs=False):
 
@@ -38,10 +39,10 @@ class TrainModel(DataBasics):
 
         train_data = self.get_train_data()
         self.X, self.y = self.split_xy(train_data)
-        model = self.train_model(print_coeffs=print_coeffs)
-        self.save_model(model, model_name=save_fname, overwrite=overwrite)
+        self.model = self.train_model(print_coeffs=print_coeffs)
+        self.save_model(model=self.model, model_name=save_fname, overwrite=overwrite)
 
-    def get_train_data(self, data_type='train'):
+    def get_train_data(self):
         """Imports training data from ETL class
 
         Returns: training dataset
@@ -55,8 +56,7 @@ class TrainModel(DataBasics):
         for param in self.configs:
             logging.info(f'\t{param}: {self.configs[param]}')        
 
-        Data = ETL(self.home, data_type=data_type)
-
+        Data = ETL(self.home, data_type='train')
         return Data.train
 
     def train_model(self, print_coeffs):
@@ -65,19 +65,6 @@ class TrainModel(DataBasics):
         Uses default parameters, or gets params from ParameterGrid (if specified).
         Returns: sklearn logistic regression model object
         """
-        # logit_clf = LogisticRegression(penalty='l1', solver='liblinear', C=0.02)
-        # parameter_grid = ParameterGrid(self.configs)
-        # # sys.exit()
-        
-        # # logit_clf = LogisticRegression()
-        # for param in parameter_grid:
-        #     logit_clf = LogisticRegression(**param)
-        # for k, v in self.configs.items():
-            # logit_clf = LogisticRegression().set_params(**{k: v})
-            # print(logit_clf)
-        
-
-        # logit_clf = LogisticRegressionCV(solver='saga', penalty='l1', max_iter=1000, Cs=8, refit=True)
         logit_clf = LogisticRegression(solver='saga', penalty='l1', max_iter=1000, C=.02)
 
         self.X = self.X.drop(columns = ['day'])
@@ -93,33 +80,21 @@ class TrainModel(DataBasics):
         if print_coeffs:
             print(coeff_msg)
             print(f'train score: {logit_clf.score(X, y)}')
-
-
-
-
-        # self.test_X = self.test_X.drop(columns = ['day'])
-        # test_X = self.test_X.to_numpy()
-        # test_y = self.test_y.to_numpy()
-        # probs = logit_clf.predict(test_X)
-        # print('probs', probs)
-        # preds = pd.Series(probs).apply(lambda x: 1 if (x > 0.5) else 0)
-
-        # mat = pd.DataFrame(confusion_matrix(preds, test_y), 
-        #                     columns = ["Unoccupied", "Occupied"], index = ["Unoccupied", "Occupied"])
-        
-        # r_squared = r2_score(test_y, preds)
-        # print("R-Squared:", r2_score(test_y, preds))
-        # print("RMSE:", np.sqrt(mean_squared_error(test_y, preds)))
-        # print("test score:", logit_clf.score(test_X, test_y))
-        # print("train score:", logit_clf.score(X, y))
-
-
         return logit_clf
 
     def set_LR_parameters(self, clf):
         pass
-
-
+            # logit_clf = LogisticRegression(penalty='l1', solver='liblinear', C=0.02)
+        # parameter_grid = ParameterGrid(self.configs)
+        # # sys.exit()
+        
+        # # logit_clf = LogisticRegression()
+        # for param in parameter_grid:
+        #     logit_clf = LogisticRegression(**param)
+        # for k, v in self.configs.items():
+            # logit_clf = LogisticRegression().set_params(**{k: v})
+            # print(logit_clf)
+        
 
     def get_filename(self, model_save_dir):
         """Gets model number if filename not specified.
@@ -133,7 +108,6 @@ class TrainModel(DataBasics):
         else:
             model_num = len(models) + 1
             fname = f'{self.home}_model_{model_num}.pickle'
-        
         return fname
 
 
@@ -166,15 +140,11 @@ class TrainModel(DataBasics):
                         '\tProgram exiting without saving model.')
                 logging.info('No model was written.')
                 sys.exit()
-
         logging.info(f'Saving model to: {os.path.relpath(save_name, start=self.models_dir)}')
 
-
-
     def main(self):
-        print(len(self.data))
-        print(self.data.columns)
-        logging.info(f'length of training data: {len(self.data)}')
+        pass
+
 
 if __name__ == '__main__':
 
@@ -191,6 +161,3 @@ if __name__ == '__main__':
                     overwrite=args.overwrite,
                     print_coeffs=args.print_coeffs
                     )
-
-    # LR_model = model.model
-    # model.save_model(LR_model)
