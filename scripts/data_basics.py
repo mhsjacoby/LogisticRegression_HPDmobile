@@ -1,7 +1,7 @@
 """
 data_basics.py
 Author: Maggie Jacoby
-Last update: 2021-02-16
+Last update: 2021-02-17
 """
 
 import os
@@ -42,6 +42,7 @@ class DataBasics():
         """
         if len(config_files) == 0:
             print(f'No {config_type} configuration file for {self.home}. Exiting program.')
+            logging.info('No configuration file.')
             sys.exit()
 
         config_file_path = config_files[0]
