@@ -15,11 +15,14 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
-from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
+from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, accuracy_score
 
-from data_basics import ModelBasics, get_model_metrics
+from data_basics import ModelBasics, get_model_metrics, create_lags
 from train import TrainModel
 from etl import ETL 
+
+from itertools import islice
+# import more_itertools as mit
 
 
 class TestModel(ModelBasics):
@@ -78,6 +81,8 @@ class TestModel(ModelBasics):
 
         with open(model_to_load, 'rb') as model_file:
             model = pickle.load(model_file)  
+
+        logging.info(f'Loading model: {os.path.basename(model_to_load)}')
         return model
 
 
@@ -86,18 +91,90 @@ class TestModel(ModelBasics):
 
         Returns: nothing
         """
-        X = self.X.to_numpy()
-        y = self.y.to_numpy()
+        # print(self.X)
+        y_pred = self.test_with_predictions(logit_clf, self.X).to_numpy()
+        y_true = self.y.to_numpy()
 
-        predicted_probabilities = get_model_metrics(logit_clf, X, y, pred_type='Test')
+        test_metrics(y_true, y_pred)
+        # X = self.X.to_numpy()
+        # print(accuracy_score(y_true, y_pred))
+        # y = self.y.to_numpy()
+
+
+        # results = get_model_metrics(logit_clf, X, y, pred_type='Test')
+        # self.predicted_probabilities, self.results_msg = results
+
+
+    def test_with_predictions(self, logit_clf, X, hr_lag=8):
+        lag_max = hr_lag*12
+
+        X_start = X.iloc[:lag_max]
+        lag_cols=[c for c in X.columns if c.startswith('lag')]
+        exog_vars = X.drop(columns=lag_cols).iloc[lag_max:]
+        new_X = pd.concat([X_start, exog_vars])
+        new_X.index = pd.to_datetime(new_X.index)
+
+        ys = []
+        for idx, row in new_X.iterrows():
+            ts_minute = idx.minute
+            curr_X = new_X.loc[new_X.index.minute == ts_minute]
+            curr_row = row.to_numpy().reshape(1,-1)
+            y_hat = logit_clf.predict(curr_row)
+
+            idx_loc = new_X.index.get_loc(idx)
+
+            for j in range(1, hr_lag + 1):
+                lag_col_name = f'lag{j}_occupied'
+                ind_to_set = idx_loc + 12*j
+
+                try:
+                    new_X.at[new_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
+                except:
+                    continue
+
+            ys.append((idx, y_hat[0]))
+        y_hats = pd.DataFrame(ys).set_index(0)[1]
+        y_hats.index.name = 'timestamp'
+        return y_hats
+
+        # print(y_hats.columns)
+
+
+
+def test_metrics(y_true, y_hat, pred_type='Prediction Tests'):
+
+    # y_hat = logit_clf.predict(X)
+    conf_mat = pd.DataFrame(confusion_matrix(y_hat, y_true), 
+                            columns = ['Vacant', 'Occupied'],
+                            index = ['Vacant', 'Occupied']
+                            )
+
+    conf_mat = pd.concat([conf_mat], keys=['Actual'], axis=0)
+    conf_mat = pd.concat([conf_mat], keys=['Predicted'], axis=1)
+
+    # logging.info(f'\n{conf_mat}')
+    print(f'\n{conf_mat}')
+
+    # score = logit_clf.score(X, y)
+    score = accuracy_score(y_true, y_hat)
+    RMSE = np.sqrt(mean_squared_error(y_true, y_hat))
+
+    results_msg = f'{pred_type} results on {len(y_hat)} predictions\n'\
+                    f'\tScore: {score:.4}\n' \
+                    f'\tRMSE: {RMSE:.4}\n'
+    print(results_msg)
+
+
+
 
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
+    parser = argparse.ArgumentParser(description='Test models')
     parser.add_argument('-train_home', '--train_home', default='H1', type=str, help='Home to get data for, eg H1')
+    parser.add_argument('-test_home', '--test_home', default=None)
     args = parser.parse_args()
     
-    model = TestModel(train_home=args.train_home)
+    model = TestModel(train_home=args.train_home, test_home=args.test_home)
 
 
