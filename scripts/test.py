@@ -17,11 +17,11 @@ from glob import glob
 from datetime import datetime, date
 from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, accuracy_score
 
-from data_basics import ModelBasics, get_model_metrics, create_lags
+from data_basics import ModelBasics, get_model_metrics, create_lags, get_counts
 from train import TrainModel
-from etl import ETL 
+from etl import ETL
 
-from itertools import islice
+# from itertools import islice
 # import more_itertools as mit
 
 
@@ -32,8 +32,9 @@ class TestModel(ModelBasics):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, train_home, test_home=None, model_to_test=None):
-
+    def __init__(self, counts, fill_type, train_home, test_home=None, model_to_test=None):
+        self.fill_type = fill_type
+        self.counts = counts
         self.train_home = train_home
         if not test_home:
             self.test_home = train_home
@@ -54,7 +55,7 @@ class TestModel(ModelBasics):
         """
         logging.info(f'Testing with data from {self.test_home}.')
 
-        Data = ETL(self.test_home, data_type='test')
+        Data = ETL(self.test_home, data_type='test', fill_type=self.fill_type, counts=self.counts)
         X, y = Data.split_xy(Data.test)
         return X, y
 
@@ -64,10 +65,11 @@ class TestModel(ModelBasics):
 
         Returns: sklearn logistic regression model object
         """
+        print('trying to import', model_to_test)
         if not model_to_test:
             model_fname = '*_model.pickle'
         else:
-            model_fname = f'{self.train_home}_{model_to_test}.pickle'
+            model_fname = f'{model_to_test}.pickle'
         possible_models = glob(os.path.join(self.models_dir, self.train_home, model_fname))
 
         if len(possible_models) == 0:
@@ -83,6 +85,7 @@ class TestModel(ModelBasics):
             model = pickle.load(model_file)  
 
         logging.info(f'Loading model: {os.path.basename(model_to_load)}')
+        print(f'Loading model: {os.path.basename(model_to_load)}')
         return model
 
 
@@ -92,15 +95,22 @@ class TestModel(ModelBasics):
         Returns: nothing
         """
         # print(self.X)
+        counts = get_counts(df=self.X, stage='test', counts=self.counts)
+
+        # df = self.X
+        # print(f'Fill type {self.fill_type} Testing')
+        # print(f'images 0s {len(df[df.img == 0])}')
+        # print(f'images 1s {len(df[df.img == 1])}')
+        # print(f'total length {len(df)}')
+
         y_pred = self.test_with_predictions(logit_clf, self.X).to_numpy()
         y_true = self.y.to_numpy()
 
         test_metrics(y_true, y_pred)
+        # print('Testing with ground truth')
+
         # X = self.X.to_numpy()
-        # print(accuracy_score(y_true, y_pred))
         # y = self.y.to_numpy()
-
-
         # results = get_model_metrics(logit_clf, X, y, pred_type='Test')
         # self.predicted_probabilities, self.results_msg = results
 
@@ -137,7 +147,7 @@ class TestModel(ModelBasics):
         y_hats.index.name = 'timestamp'
         return y_hats
 
-        # print(y_hats.columns)
+        print(y_hats.columns)
 
 
 

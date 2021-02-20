@@ -19,7 +19,7 @@ from datetime import datetime, date
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 # from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
 
-from data_basics import ModelBasics, get_model_metrics
+from data_basics import ModelBasics, get_model_metrics, get_counts
 from etl import ETL 
 
 
@@ -30,11 +30,14 @@ class TrainModel(ModelBasics):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, home, save_fname=None, overwrite=False, config_file=None):
-        
+    def __init__(self, home, counts, fill_type, save_fname=None, overwrite=False, config_file=None):
+        self.fill_type = fill_type
+        self.counts = counts
         self.home = home
         self.get_directories()
         self.coeff_msg = None
+        self.predicted_probabilities = None
+        self.results_msg = None
         self.train_log = self.format_logs(log_type='Train', home=self.home)
         config_file_list = self.pick_config_file(config_file)
         self.configs = self.read_config(config_files=config_file_list, config_type='Train')
@@ -65,7 +68,7 @@ class TrainModel(ModelBasics):
         for param in self.configs:
             self.train_log.info(f'\t{param}: {self.configs[param]}')        
 
-        Data = ETL(self.home, data_type='train')
+        Data = ETL(self.home, data_type='train', fill_type=self.fill_type, counts=self.counts)
         X, y = Data.split_xy(Data.train)
         return X, y
 
@@ -91,10 +94,20 @@ class TrainModel(ModelBasics):
         y = self.y.to_numpy()
         logit_clf.fit(X, y)
 
-        predicted_probabilities = get_model_metrics(logit_clf, X, y, pred_type='Train')
+        results = get_model_metrics(logit_clf, X, y, pred_type='Train')
+        self.predicted_probabilities, self.results_msg = results
 
         self.coeff_msg = self.print_coeffs(logit_clf)
         self.train_log.info(f'{self.coeff_msg}')
+
+        # df = self.X
+        # print(f'Fill type {self.fill_type} Training')
+        # print(f'images 0s {len(df[df.img == 0])}')
+        # print(f'images 1s {len(df[df.img == 1])}')
+        # print(f'total length {len(df)}')
+
+        counts = get_counts(df=self.X, stage='train', counts=self.counts)
+
 
         return logit_clf
 
