@@ -30,7 +30,9 @@ class TrainModel(ModelBasics):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, home, counts, fill_type, save_fname=None, overwrite=False, config_file=None):
+    def __init__(self, home, fill_type, save_model=False, 
+                save_fname=None, config_file=None, X_train=None, y_train=None):
+
         self.fill_type = fill_type
         self.counts = counts
         self.home = home
@@ -38,12 +40,17 @@ class TrainModel(ModelBasics):
         self.coeff_msg = None
         self.predicted_probabilities = None
         self.results_msg = None
+
         self.train_log = self.format_logs(log_type='Train', home=self.home)
         config_file_list = self.pick_config_file(config_file)
         self.configs = self.read_config(config_files=config_file_list, config_type='Train')
-        self.X, self.y = self.get_train_data()
+
+        if not X_train:
+            self.X, self.y = self.get_train_data()
         self.model = self.train_model()
-        self.save_model(model=self.model, model_name=save_fname, overwrite=overwrite)
+        
+        if save_model:
+            self.save_model(model=self.model, model_name=save_fname)#, overwrite=overwrite)
 
 
     def pick_config_file(self, config_file=None):
@@ -52,7 +59,7 @@ class TrainModel(ModelBasics):
         if not config_file:
             config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
         else:
-            print(f'Configuration file specified: {config_file}.')
+            # print(f'>>> Configuration file specified: {config_file}.')
             config_file_list = glob(os.path.join(self.config_dir, config_file))
         
         return config_file_list
@@ -82,7 +89,7 @@ class TrainModel(ModelBasics):
         clf = LogisticRegression().set_params(**self.configs)
         return clf
 
-
+############
     def train_model(self):
         """Trains a logistic regression model.
 
@@ -94,28 +101,25 @@ class TrainModel(ModelBasics):
         y = self.y.to_numpy()
         logit_clf.fit(X, y)
 
-        results = get_model_metrics(logit_clf, X, y, pred_type='Train')
-        self.predicted_probabilities, self.results_msg = results
+        self.train_probs = logit_clf.predict_proba(X)[:,1]
+        self.train_preds = logit_clf.predict(X)
+
+        conf_mat, results = get_model_metrics(y_true=y, y_hat=self.train_preds)
+        # self.predicted_probabilities, self.results_msg = results
 
         self.coeff_msg = self.print_coeffs(logit_clf)
-        self.train_log.info(f'{self.coeff_msg}')
-
-        # df = self.X
-        # print(f'Fill type {self.fill_type} Training')
-        # print(f'images 0s {len(df[df.img == 0])}')
-        # print(f'images 1s {len(df[df.img == 1])}')
-        # print(f'total length {len(df)}')
-
-        counts = get_counts(df=self.X, stage='train', counts=self.counts)
-
+        logging.info(f'{self.coeff_msg}')
+        # self.train_probs, self.train_preds = probs
 
         return logit_clf
+
 
     def print_coeffs(self, model):
 
         coeff_msg = f'\nCoefficients:\n{pd.Series(model.coef_[0], index = self.X.columns).to_string()}\n' \
                         f'intercept\t{model.intercept_[0]}'
         return coeff_msg
+
 
     def get_filename(self, model_save_dir):
         """Gets model number if filename not specified.
@@ -151,19 +155,12 @@ class TrainModel(ModelBasics):
 
         if not os.path.isfile(save_name):
             pickle.dump(model, open(save_name, 'wb'))
-            print(f'Saving model to {save_name}')
+            print(f'>>> Saving model to {fname}')
+            logging.info(f'Writing model to {fname}.')
         else:
-            if overwrite:
-                print(f'Model {fname} exists. Overwriting previous model with current one.')
-                pickle.dump(model, open(save_name, 'wb'))
-                self.train_log.info(f'Overwriting previous {fname}.')
-            else:
-                print(f'\tModel {fname} already exists.\n' \
-                        '\tPlease re-run and specify a filename or set overwrite to "True".\n' \
-                        '\tProgram exiting without saving model.')
-                self.train_log.info('No model was written.')
-                sys.exit()
-        self.train_log.info(f'Saving model to: {os.path.relpath(save_name, start=self.models_dir)}')
+            pickle.dump(model, open(save_name, 'wb'))
+            print(f'>>> Model {fname} exists. Overwriting previous.')
+            logging.info(f'Overwriting previous {fname}.')
 
 
 if __name__ == '__main__':
@@ -171,13 +168,14 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train and save models')
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-save_fname', '--save_fname', default=None, help='Filename to save model to')
-    parser.add_argument('-overwrite', '--overwrite', default=False, type=bool, help='Overwrite model if it exists?')
     parser.add_argument('-config_file', '--config_file', default=None, help='Configuration file to use')
+    parser.add_argument('-fill_type', '--fill_type')
+
     args = parser.parse_args()
     
     model = TrainModel(
                     home=args.home,
                     save_fname=args.save_fname,
-                    overwrite=args.overwrite,
                     config_file=args.config_file,
+                    fill_type=args.fill_type
                     )

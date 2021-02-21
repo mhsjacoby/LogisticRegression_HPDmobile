@@ -35,8 +35,8 @@ class ETL(ModelBasics):
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, home, fill_type, counts, data_type='train and test'):
-        self.counts = counts
+    def __init__(self, home, fill_type, data_type='train and test'):
+        # self.counts = counts
         self.fill_type = fill_type
         self.home = home
         self.get_directories()
@@ -44,8 +44,6 @@ class ETL(ModelBasics):
         self.days = []
         self.train, self.test = None, None
         
-
-        self.etl_log = self.format_logs(log_type='ETL', home=self.home)
         self.load_data(data_type=data_type)
 
     def load_data(self, data_type):
@@ -62,27 +60,25 @@ class ETL(ModelBasics):
         check_name = os.path.join(self.data_dir, f'{dt1}_{self.home}_{self.fill_type}.csv')
         data_exists = os.path.exists(check_name)
 
+        assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
+
         if data_exists:
-            # print(f'Data type {self.fill_type} exists.')
+            
             if data_type == 'train':
                 self.train = self.read_csvs(data_type)
             elif data_type == 'test':
                 self.test = self.read_csvs(data_type)
-            elif dt1 == 'train' or dt1 == 'test':
+            else:
                 self.train = self.read_csvs('train')
                 self.test = self.read_csvs('test')
-            else:
-                print(f'Unknown datatype {data_type}. Exiting program.')
-                sys.exit()
+
         else:
-            print(f'Data fill type {self.fill_type} does not exist. Creating new....')
-            if dt1 == 'train' or dt1 == 'test':
-                df = self.create_new_datafiles()
-                self.train, self.test = self.get_train_test(df)
-                self.write_data()
-            else:
-                print(f'Unknown datatype {data_type}. Exiting program.')
-                sys.exit()
+            print(f'>>> Data fill type {self.fill_type} does not exist. Creating new files....')
+            # if dt1 == 'train' or dt1 == 'test':
+            df = self.create_new_datafiles()
+            self.train, self.test = self.get_train_test(df)
+            self.write_data()
+
 
     def read_csvs(self, data_type):
         """Reads in previously created train or test data.
@@ -91,18 +87,13 @@ class ETL(ModelBasics):
         """
         data_files = glob(os.path.join(self.data_dir, f'{data_type}_{self.home}_{self.fill_type}.csv'))
         if len(data_files) == 0:
-            print(f'No {data_type} files for {self.home}. Exiting program.')
+            print(f'!!! No {data_type} files for {self.home}. Exiting program.')
             sys.exit()
 
         data_path = data_files[0]
-        if len(data_files) > 1:
-            print(f'\t{len(data_files)} {data_type} files for {self.home}.\n' \
-                f'\tUsing: {os.path.basename(data_path)}.')
 
-        self.etl_log.info(f'Using: {os.path.basename(data_path)} for {data_type} data.')        
-
-        # logging.info(f'Using: {os.path.basename(data_path)} for {data_type} data.')        
-        print(f'Loading data file {os.path.basename(data_path)}...')
+        logging.info(f'Using: {os.path.basename(data_path)}')             
+        print(f'>>> Loading data file {os.path.basename(data_path)}...')
 
         data_type_df = pd.read_csv(data_path, index_col='timestamp')
         return data_type_df
@@ -116,10 +107,8 @@ class ETL(ModelBasics):
 
         Returns: pandas df (with all days)
         """ 
-        # config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
-        print(f'Creating new files with fill type {self.fill_type}')
-        config_files = glob(os.path.join(self.config_dir, f'H1_etl_*.yaml'))
-        
+        config_files = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
+        print(f'>>> Creating new files with fill type {self.fill_type}')
 
         self.configs = self.read_config(config_files=config_files)
         self.days = self.get_days(self.configs['start_end'])
@@ -127,22 +116,22 @@ class ETL(ModelBasics):
         data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
         # data_path = os.path.join(self.raw_data, f'H2.csv')
 
-        df = self.read_infs(data_path=data_path)#, fill_type=self.fill_type)
+        df = self.read_infs(data_path=data_path)
         return df
 
 
     def fill_df(self, df, fill_type):
 
-        if fill_type == 'zero':
+        if fill_type == 'zeros':
             print('filling nans with 0')
             df = df.fillna(0)
-        elif fill_type == 'one':
+        elif fill_type == 'ones':
             print('filling nans with 1')
             df = df.fillna(1)
         elif fill_type == 'ffill':
             print('forward filling nans')
             df = df.fillna(method='ffill')
-            df = df.dropna()
+            df = df.fillna(0)
         else:
             print('dropping nans')
             df = df.dropna()
@@ -159,35 +148,14 @@ class ETL(ModelBasics):
 
         Returns: pandas df
         """
-        # logging.info(f'Reading inferences from {os.path.basename(data_path)}')
-        self.etl_log.info(f'Reading inferences from {os.path.basename(data_path)}')
-
+        logging.info(f'Reading inferences from {os.path.basename(data_path)}')
 
         df = pd.read_csv(data_path, index_col="timestamp")
         df.index = pd.to_datetime(df.index)
         df = df.resample(rule=resample_rate).mean()
         df['occupied'] = df['occupied'].apply(lambda x: 1 if (x >= thresh) else 0)
-    
-        # if fill_nan:
-        #     # df = df.fillna(method='ffill')
-        #     df = df.fillna(0)
-        # else:
-        #     df = df.dropna()
+
         df = self.fill_df(df=df, fill_type=self.fill_type)
-
-        counts = get_counts(df=df, stage='inferences', counts=self.counts)
-
-        # print(f'Fill type {self.fill_type}')
-        # print(f'images 0s {len(df[df.img == 0])}')
-        # print(f'images 1s {len(df[df.img == 1])}')
-        # print(f'total length {len(df)}')
-
-
-        # print(f'Fill type {self.fill_type}')
-        # print(f'images 0s {len(df[df.img == 0])}')
-        # print(f'images 1s {len(df[df.img == 1])}')
-        # print(f'total length {len(df)}')
-
         df = self.create_lags(df)
         return df
 
@@ -201,9 +169,7 @@ class ETL(ModelBasics):
         """
         ts = int(60/min_inc)
         occ_series = df['occupied']
-        # logging.info(f'Creating data with a lag of {lag_hours} hours.')
-        self.etl_log.info(f'Creating data with a lag of {lag_hours} hours.')
-
+        logging.info(f'Creating data with a lag of {lag_hours} hours.')
 
         for i in range(1, lag_hours+1):
             lag_name = f'lag{i}_occupied'
@@ -262,7 +228,7 @@ class ETL(ModelBasics):
         os.makedirs(self.data_dir, exist_ok=True)   
         train_fname = os.path.join(self.data_dir, f'train_{self.home}_{self.fill_type}.csv')
         test_fname = os.path.join(self.data_dir, f'test_{self.home}_{self.fill_type}.csv')
-        self.etl_log.info(f'Writing data to {os.path.basename(train_fname)} and {os.path.basename(test_fname)}.')
+        logging.info(f'Writing data to {os.path.basename(train_fname)} and {os.path.basename(test_fname)}.')
 
         self.train.to_csv(train_fname, index_label='timestamp')
         self.test.to_csv(test_fname, index_label='timestamp')
