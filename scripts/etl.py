@@ -35,7 +35,7 @@ class ETL(ModelBasics):
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, home, fill_type='zeros', data_type='train and test'):
+    def __init__(self, home, fill_type='zeros', data_type='train and test', log_flag=True):
         
         self.home = home
         self.fill_type = fill_type
@@ -43,6 +43,8 @@ class ETL(ModelBasics):
         self.configs = None
         self.days = []
         self.train, self.test = None, None
+        self.log_flag = log_flag
+        self.format_logs(log_type='ETL')
         
         self.load_data(data_type=data_type)
 
@@ -64,7 +66,7 @@ class ETL(ModelBasics):
         assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
 
         if data_exists:
-            
+
             if data_type == 'train':
                 self.train = self.read_csvs(data_type)
             elif data_type == 'test':
@@ -108,7 +110,6 @@ class ETL(ModelBasics):
 
         Returns: pandas df (with all days)
         """ 
-        self.etl_log = self.format_logs(log_type='ETL', home=self.home)
         config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
         self.configs = self.read_config(config_files=config_file_list)
         self.days = self.get_days(self.configs['start_end'])
@@ -260,4 +261,5 @@ if __name__ == '__main__':
             home=args.home,
             data_type=args.data_type,
             fill_type=args.fill_type,
+            log_flag=False
             )

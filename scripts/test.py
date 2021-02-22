@@ -29,13 +29,15 @@ class TestModel(ModelBasics):
     """
 
     def __init__(self, train_home, test_home, X_test=None, y_test=None, fill_type='zeros',
-                model_object=None, model_name=None, save_results=True):
+                model_object=None, model_name=None, save_results=True, log_flag=True):
         
         self.train_home = train_home
         self.test_home = test_home
         self.fill_type = fill_type
         self.get_directories()
-        self.test_log = self.format_logs(log_type='Test', home=self.train_home)
+
+        self.log_flag = log_flag
+        self.format_logs(log_type='Test')
         self.gt_probabilities, self.gt_predictions = None, None
         self.gt_results, self.get_conf_mat = None, None
         # self.probabilities, self.predictions = None, None
@@ -202,9 +204,9 @@ if __name__ == '__main__':
     
     test_home = args.train_home if not args.test_home else args.test_home
 
-    model = TestModel(
+    Test = TestModel(
                     train_home=args.train_home,
                     test_home=test_home,
+                    log_flag=False
                     )
-
 

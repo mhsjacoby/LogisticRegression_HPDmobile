@@ -29,7 +29,7 @@ class TrainModel(ModelBasics):
     """
 
     def __init__(self, home, X_train=None, y_train=None, fill_type='zeros',
-                save_model=False, save_fname=None, config_file=None):
+                save_model=False, save_fname=None, config_file=None, log_flag=True):
 
         self.home = home
         self.fill_type = fill_type
@@ -38,7 +38,8 @@ class TrainModel(ModelBasics):
         self.probabilities, self.predictions = None, None
         self.results, self.conf_mat = None, None
 
-        self.train_log = self.format_logs(log_type='Train', home=self.home)
+        self.log_flag = log_flag
+        self.format_logs(log_type='Train')
         config_file_list = self.pick_config_file(config_file)
         self.configs = self.read_config(config_files=config_file_list, config_type='Train')
 
@@ -58,7 +59,6 @@ class TrainModel(ModelBasics):
         if not config_file:
             config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
         else:
-            # print(f'>>> Configuration file specified: {config_file}.')
             config_file_list = glob(os.path.join(self.config_dir, config_file))
         return config_file_list
 
@@ -183,10 +183,12 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
-    model = TrainModel(
+    Model = TrainModel(
                     home=args.home,
                     config_file=args.config_file,
                     fill_type=args.fill_type,
                     save_model=True,
                     save_fname=args.save_fname,
+                    log_flag=False
                     )
+

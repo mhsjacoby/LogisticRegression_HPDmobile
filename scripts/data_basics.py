@@ -28,9 +28,6 @@ def get_predictions_wGT(logit_clf, X, y):
     """
     probs = logit_clf.predict_proba(X)[:,1]
     preds = logit_clf.predict(X)
-
-    # conf_mat, results = get_model_metrics(y_true=y, y_hat=preds)
-    # logging.info(f'\n=== TRAINING RESULTS === \n\n{conf_mat}')
     return probs, preds
 
 
@@ -100,22 +97,25 @@ class ModelBasics():
         return config
 
 
-    def format_logs(self, log_type, home):
+    def format_logs(self, log_type):
         """Creates log object and set logging parameters and format
 
         Returns: log object
         """
         os.makedirs(self.log_save_dir, exist_ok=True)
 
-        log_config = logging.basicConfig(
-            filename=os.path.join(self.log_save_dir, f'{home}.log'),
+        logging.basicConfig(
+            filename=os.path.join(self.log_save_dir, f'{self.home}.log'),
             level=logging.INFO,
             format='%(message)s',
             datefmt='%Y-%m-%d',
             )
-        log_obj = logging.getLogger(log_config)
-        log_obj.info(f'\n\t\t##### {log_type} #####\n{date.today()}: {datetime.now().strftime("%H:%M")}')
-        return log_obj
+
+        if not self.log_flag:
+            logging.info(f'\n\t#### NEW RUN with {log_type} ####\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
+            self.log_flag = True
+        else:
+            logging.info(f'\n# {log_type} #\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
 
 
 

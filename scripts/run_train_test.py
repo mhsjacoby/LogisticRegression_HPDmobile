@@ -13,7 +13,6 @@ from train import TrainModel
 from test import TestModel
 from etl import ETL
 
-
 parser = argparse.ArgumentParser(description='Join ETL, Train, and Test functionality.')
 parser.add_argument('-train_home', '--train_home', default='H1', type=str, help='Home to train on, eg H1')
 parser.add_argument('-test_home', '--test_home', default=None, help='Home to test on, if different from train')
@@ -30,8 +29,10 @@ Data = ETL(
         home=args.train_home,
         data_type='train and test',
         fill_type=args.fill_type,
+        log_flag=False
         )
 X_train, y_train = Data.split_xy(Data.train)
+
 
 print('Training...')
 Model = TrainModel(
