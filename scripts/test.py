@@ -16,7 +16,7 @@ import pandas as pd
 from glob import glob
 from datetime import datetime, date
 
-from data_basics import ModelBasics, get_model_metrics
+from data_basics import ModelBasics, get_model_metrics, get_predictions_wGT
 from train import TrainModel
 from etl import ETL
 
@@ -36,6 +36,10 @@ class TestModel(ModelBasics):
         self.fill_type = fill_type
         self.get_directories()
         self.test_log = self.format_logs(log_type='Test', home=self.train_home)
+        self.gt_probabilities, self.gt_predictions = None, None
+        self.gt_results, self.get_conf_mat = None, None
+        # self.probabilities, self.predictions = None, None
+        # self.results, self.conf_mat = None, None
 
         if X_test is None or y_test is None:
             self.X, self.y = self.get_test_data()
@@ -47,6 +51,8 @@ class TestModel(ModelBasics):
         else:
             self.model = self.import_model(model_name)
         self.save_results = save_results
+
+        self.test_model(self.model)
 
 
     def get_test_data(self):
@@ -90,8 +96,19 @@ class TestModel(ModelBasics):
 
         Returns: nothing
         """
+        X = self.X.to_numpy()
+        y = self.y.to_numpy()
+
+        self.gt_probabilities, self.gt_predictions = get_predictions_wGT(logit_clf=logit_clf, X=X, y=y)
+        self.gt_conf_mat, self.gt_results = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
+        logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
+
+        # self.probabilities, self.predictions = self.test_with_predictions(logit_clf=logit_clf, X=X, y=y)
+        # self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
+        # logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
+
         # print(self.X)
-        counts = get_counts(df=self.X, stage='test', counts=self.counts)
+        # counts = get_counts(df=self.X, stage='test', counts=self.counts)
 
         # df = self.X
         # print(f'Fill type {self.fill_type} Testing')
@@ -99,10 +116,10 @@ class TestModel(ModelBasics):
         # print(f'images 1s {len(df[df.img == 1])}')
         # print(f'total length {len(df)}')
 
-        y_pred = self.test_with_predictions(logit_clf, self.X).to_numpy()
-        y_true = self.y.to_numpy()
+        # y_pred = self.test_with_predictions(logit_clf, self.X).to_numpy()
+        # y_true = self.y.to_numpy()
 
-        test_metrics(y_true, y_pred)
+        # test_metrics(y_true, y_pred)
         # print('Testing with ground truth')
 
         # X = self.X.to_numpy()

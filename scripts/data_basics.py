@@ -21,6 +21,19 @@ from datetime import datetime, date
 from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score
 
 
+def get_predictions_wGT(logit_clf, X, y):
+    """Run data through classifier to get predictions given X and y using ground truth for lags
+
+    Returns: probabilities (between 0,1) and predictions (0/1)
+    """
+    probs = logit_clf.predict_proba(X)[:,1]
+    preds = logit_clf.predict(X)
+
+    # conf_mat, results = get_model_metrics(y_true=y, y_hat=preds)
+    # logging.info(f'\n=== TRAINING RESULTS === \n\n{conf_mat}')
+    return probs, preds
+
+
 def get_model_metrics(y_true, y_hat):
     """Stand-alone function to get metrics given a classifier.
 
@@ -95,7 +108,7 @@ class ModelBasics():
         os.makedirs(self.log_save_dir, exist_ok=True)
 
         log_config = logging.basicConfig(
-            filename=os.path.join(self.log_save_dir, f'{log_type}_{home}.log'),
+            filename=os.path.join(self.log_save_dir, f'{home}.log'),
             level=logging.INFO,
             format='%(message)s',
             datefmt='%Y-%m-%d',

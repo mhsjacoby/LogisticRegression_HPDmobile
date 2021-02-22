@@ -31,8 +31,8 @@ Data = ETL(
         data_type='train and test',
         fill_type=args.fill_type,
         )
-
 X_train, y_train = Data.split_xy(Data.train)
+
 print('Training...')
 Model = TrainModel(
                 home=args.train_home,
@@ -40,8 +40,8 @@ Model = TrainModel(
                 y_train=y_train,
                 fill_type=args.fill_type,
                 )
-
 X_test, y_test = Data.split_xy(Data.test)
+
 print('Testing...')
 Test_model = TestModel(
                 train_home=args.train_home,
@@ -51,11 +51,11 @@ Test_model = TestModel(
                 model_object=Model.model,
                 fill_type=args.fill_type,
                 )
-
+# print(Test_model.model)
 
 # print('\n==================================')
-# print(f'Model trained/tested on {args.train_home}/{test_home} with fill type {args.fill_type} using predictions')
-# # print(test_model.results_msg)
+print(f'\n=== Ground truth model trained/tested on {args.train_home}/{test_home} with fill type {args.fill_type}=== \n')
+print(Test_model.gt_results)
 
 # # print(test_model.predicted_probabilities)
 # # print(Test_model.counts)

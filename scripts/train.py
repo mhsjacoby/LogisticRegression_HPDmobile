@@ -17,7 +17,7 @@ from glob import glob
 from datetime import datetime, date
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 
-from data_basics import ModelBasics, get_model_metrics
+from data_basics import ModelBasics, get_model_metrics, get_predictions_wGT
 from etl import ETL 
 
 
@@ -35,8 +35,8 @@ class TrainModel(ModelBasics):
         self.fill_type = fill_type
         self.get_directories()
         self.coeff_msg = None
-        self.predicted_probabilities = None
-        self.results_msg = None
+        self.probabilities, self.predictions = None, None
+        self.results, self.conf_mat = None, None
 
         self.train_log = self.format_logs(log_type='Train', home=self.home)
         config_file_list = self.pick_config_file(config_file)
@@ -89,7 +89,7 @@ class TrainModel(ModelBasics):
         clf = LogisticRegression().set_params(**self.configs)
         return clf
 
-############
+
     def train_model(self):
         """Trains a logistic regression model.
 
@@ -101,20 +101,32 @@ class TrainModel(ModelBasics):
         y = self.y.to_numpy()
         logit_clf.fit(X, y)
 
-        self.train_probs = logit_clf.predict_proba(X)[:,1]
-        self.train_preds = logit_clf.predict(X)
-
-        conf_mat, results = get_model_metrics(y_true=y, y_hat=self.train_preds)
         self.coeff_msg = self.print_coeffs(logit_clf)
         logging.info(f'{self.coeff_msg}')
-        logging.info(f'\n=== TRAINING RESULTS === \n\n{conf_mat}')
+
+        self.probabilities, self.predictions = get_predictions_wGT(logit_clf=logit_clf, X=X, y=y)
+        self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
+        logging.info(f'\n=== TRAINING RESULTS === \n\n{self.conf_mat}')
 
         return logit_clf
+
+    # def get_predictions(self, logit_clf, X, y):
+    #     """Run data through classifier to get predictions given X and y
+
+    #     Prints the resulting confision matrix
+    #     Returns: probabilities (between 0,1) and predictions (0/1)
+    #     """
+    #     probs = logit_clf.predict_proba(X)[:,1]
+    #     preds = logit_clf.predict(X)
+
+    #     conf_mat, results = get_model_metrics(y_true=y, y_hat=preds)
+    #     logging.info(f'\n=== TRAINING RESULTS === \n\n{conf_mat}')
+    #     return probs, preds, results
 
 
     def print_coeffs(self, model):
 
-        coeff_msg = f'\nCoefficients:\n{pd.Series(model.coef_[0], index = self.X.columns).to_string()}\n' \
+        coeff_msg = f'\nCoefficients:\n{pd.Series(model.coef_[0], index=self.X.columns).to_string()}\n' \
                         f'intercept\t{model.intercept_[0]}'
         return coeff_msg
 
