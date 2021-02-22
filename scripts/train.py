@@ -15,11 +15,9 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
-
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-# from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix
 
-from data_basics import ModelBasics, get_model_metrics, get_counts
+from data_basics import ModelBasics, get_model_metrics
 from etl import ETL 
 
 
@@ -30,12 +28,11 @@ class TrainModel(ModelBasics):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, home, fill_type, save_model=False, 
-                save_fname=None, config_file=None, X_train=None, y_train=None):
+    def __init__(self, home, X_train=None, y_train=None, fill_type='zeros',
+                save_model=False, save_fname=None, config_file=None):
 
-        self.fill_type = fill_type
-        self.counts = counts
         self.home = home
+        self.fill_type = fill_type
         self.get_directories()
         self.coeff_msg = None
         self.predicted_probabilities = None
@@ -45,12 +42,14 @@ class TrainModel(ModelBasics):
         config_file_list = self.pick_config_file(config_file)
         self.configs = self.read_config(config_files=config_file_list, config_type='Train')
 
-        if not X_train:
+        if X_train is None or y_train is None:
             self.X, self.y = self.get_train_data()
+        else:
+            self.X, self.y = X_train, y_train
+
         self.model = self.train_model()
-        
         if save_model:
-            self.save_model(model=self.model, model_name=save_fname)#, overwrite=overwrite)
+            self.save_model(model=self.model, model_name=save_fname)
 
 
     def pick_config_file(self, config_file=None):
@@ -61,7 +60,6 @@ class TrainModel(ModelBasics):
         else:
             # print(f'>>> Configuration file specified: {config_file}.')
             config_file_list = glob(os.path.join(self.config_dir, config_file))
-        
         return config_file_list
 
 
@@ -69,13 +67,9 @@ class TrainModel(ModelBasics):
         """Imports training data from ETL class
 
         Returns: training dataset
-        """
+        """     
 
-        self.train_log.info('Parameters used:')
-        for param in self.configs:
-            self.train_log.info(f'\t{param}: {self.configs[param]}')        
-
-        Data = ETL(self.home, data_type='train', fill_type=self.fill_type, counts=self.counts)
+        Data = ETL(self.home, fill_type=self.fill_type, data_type='train')
         X, y = Data.split_xy(Data.train)
         return X, y
 
@@ -86,6 +80,12 @@ class TrainModel(ModelBasics):
         Only takes in one set of parameters.
         Returns: sklearn logistic regression model object (not fitted to data)
         """
+        logging.info('Parameters used:')
+        for param in self.configs:
+            logging.info(f'\t{param}: {self.configs[param]}')
+        
+        print(f'\t>>> Training model with params: {self.configs}')
+
         clf = LogisticRegression().set_params(**self.configs)
         return clf
 
@@ -105,11 +105,9 @@ class TrainModel(ModelBasics):
         self.train_preds = logit_clf.predict(X)
 
         conf_mat, results = get_model_metrics(y_true=y, y_hat=self.train_preds)
-        # self.predicted_probabilities, self.results_msg = results
-
         self.coeff_msg = self.print_coeffs(logit_clf)
         logging.info(f'{self.coeff_msg}')
-        # self.train_probs, self.train_preds = probs
+        logging.info(f'\n=== TRAINING RESULTS === \n\n{conf_mat}')
 
         return logit_clf
 
@@ -155,12 +153,12 @@ class TrainModel(ModelBasics):
 
         if not os.path.isfile(save_name):
             pickle.dump(model, open(save_name, 'wb'))
-            print(f'>>> Saving model to {fname}')
-            logging.info(f'Writing model to {fname}.')
+            print(f'\t>>> Writing model to {fname}')
+            logging.info(f'Writing model to {fname}')
         else:
             pickle.dump(model, open(save_name, 'wb'))
-            print(f'>>> Model {fname} exists. Overwriting previous.')
-            logging.info(f'Overwriting previous {fname}.')
+            print(f'\t>>> Model {fname} exists. Overwriting previous')
+            logging.info(f'Overwriting previous {fname}')
 
 
 if __name__ == '__main__':
@@ -169,13 +167,14 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-save_fname', '--save_fname', default=None, help='Filename to save model to')
     parser.add_argument('-config_file', '--config_file', default=None, help='Configuration file to use')
-    parser.add_argument('-fill_type', '--fill_type')
+    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
 
     args = parser.parse_args()
     
     model = TrainModel(
                     home=args.home,
-                    save_fname=args.save_fname,
                     config_file=args.config_file,
-                    fill_type=args.fill_type
+                    fill_type=args.fill_type,
+                    save_model=True,
+                    save_fname=args.save_fname,
                     )

@@ -15,14 +15,10 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
-from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, accuracy_score
 
-from data_basics import ModelBasics, get_model_metrics, create_lags, get_counts
+from data_basics import ModelBasics, get_model_metrics
 from train import TrainModel
 from etl import ETL
-
-# from itertools import islice
-# import more_itertools as mit
 
 
 class TestModel(ModelBasics):
@@ -32,20 +28,25 @@ class TestModel(ModelBasics):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, counts, fill_type, train_home, test_home=None, model_to_test=None):
-        self.fill_type = fill_type
-        self.counts = counts
+    def __init__(self, train_home, test_home, X_test=None, y_test=None, fill_type='zeros',
+                model_object=None, model_name=None, save_results=True):
+        
         self.train_home = train_home
-        if not test_home:
-            self.test_home = train_home
-        else:
-            self.test_home = test_home
-
+        self.test_home = test_home
+        self.fill_type = fill_type
         self.get_directories()
-        self.format_logs(log_type='Test', home=self.train_home)
-        self.X, self.y = self.get_test_data()
-        self.model = self.import_model(model_to_test)
-        self.test_model(logit_clf=self.model)
+        self.test_log = self.format_logs(log_type='Test', home=self.train_home)
+
+        if X_test is None or y_test is None:
+            self.X, self.y = self.get_test_data()
+        else:
+            self.X, self.y = X_test, y_test
+
+        if model_object is not None:
+            self.model = model_object
+        else:
+            self.model = self.import_model(model_name)
+        self.save_results = save_results
 
 
     def get_test_data(self):
@@ -53,9 +54,9 @@ class TestModel(ModelBasics):
 
         Returns: testing dataset
         """
-        logging.info(f'Testing with data from {self.test_home}.')
+        logging.info(f'Testing with data from {self.test_home}')
 
-        Data = ETL(self.test_home, data_type='test', fill_type=self.fill_type, counts=self.counts)
+        Data = ETL(self.test_home, fill_type=self.fill_type, data_type='test')
         X, y = Data.split_xy(Data.test)
         return X, y
 
@@ -65,27 +66,22 @@ class TestModel(ModelBasics):
 
         Returns: sklearn logistic regression model object
         """
-        print('trying to import', model_to_test)
-        if not model_to_test:
-            model_fname = '*_model.pickle'
+        if model_to_test is not None:
+            model_fname = f'{self.train_home}_{model_to_test}.pickle'
         else:
-            model_fname = f'{model_to_test}.pickle'
+            model_fname = f'{self.train_home}_*.pickle'
         possible_models = glob(os.path.join(self.models_dir, self.train_home, model_fname))
 
         if len(possible_models) == 0:
-            print(f'No model named {model_name}. Exiting program.')
+            print(f'\t!!! No model named {model_fname}. Exiting program.')
             sys.exit()
-        elif len(possible_models) > 1:
-            print(f'{len(model_to_load)} possible models. Exiting program.')
-            sys.exit()
-        else:
-            model_to_load = possible_models[0]
+        model_to_load = possible_models[0]
 
         with open(model_to_load, 'rb') as model_file:
             model = pickle.load(model_file)  
 
         logging.info(f'Loading model: {os.path.basename(model_to_load)}')
-        print(f'Loading model: {os.path.basename(model_to_load)}')
+        print(f'\t>>> Loading model: {os.path.basename(model_to_load)}')
         return model
 
 
@@ -151,28 +147,28 @@ class TestModel(ModelBasics):
 
 
 
-def test_metrics(y_true, y_hat, pred_type='Prediction Tests'):
+# def test_metrics(y_true, y_hat, pred_type='Prediction Tests'):
 
-    # y_hat = logit_clf.predict(X)
-    conf_mat = pd.DataFrame(confusion_matrix(y_hat, y_true), 
-                            columns = ['Vacant', 'Occupied'],
-                            index = ['Vacant', 'Occupied']
-                            )
+#     # y_hat = logit_clf.predict(X)
+#     conf_mat = pd.DataFrame(confusion_matrix(y_hat, y_true), 
+#                             columns = ['Vacant', 'Occupied'],
+#                             index = ['Vacant', 'Occupied']
+#                             )
 
-    conf_mat = pd.concat([conf_mat], keys=['Actual'], axis=0)
-    conf_mat = pd.concat([conf_mat], keys=['Predicted'], axis=1)
+#     conf_mat = pd.concat([conf_mat], keys=['Actual'], axis=0)
+#     conf_mat = pd.concat([conf_mat], keys=['Predicted'], axis=1)
 
-    # logging.info(f'\n{conf_mat}')
-    print(f'\n{conf_mat}')
+#     # logging.info(f'\n{conf_mat}')
+#     print(f'\n{conf_mat}')
 
-    # score = logit_clf.score(X, y)
-    score = accuracy_score(y_true, y_hat)
-    RMSE = np.sqrt(mean_squared_error(y_true, y_hat))
+#     # score = logit_clf.score(X, y)
+#     score = accuracy_score(y_true, y_hat)
+#     RMSE = np.sqrt(mean_squared_error(y_true, y_hat))
 
-    results_msg = f'{pred_type} results on {len(y_hat)} predictions\n'\
-                    f'\tScore: {score:.4}\n' \
-                    f'\tRMSE: {RMSE:.4}\n'
-    print(results_msg)
+#     results_msg = f'{pred_type} results on {len(y_hat)} predictions\n'\
+#                     f'\tScore: {score:.4}\n' \
+#                     f'\tRMSE: {RMSE:.4}\n'
+#     print(results_msg)
 
 
 
@@ -182,9 +178,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Test models')
     parser.add_argument('-train_home', '--train_home', default='H1', type=str, help='Home to get data for, eg H1')
-    parser.add_argument('-test_home', '--test_home', default=None)
+    parser.add_argument('-test_home', '--test_home', default=None, help='Home to test on, if different from train')
+    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
+
     args = parser.parse_args()
     
-    model = TestModel(train_home=args.train_home, test_home=args.test_home)
+    test_home = args.train_home if not args.test_home else args.test_home
+
+    model = TestModel(
+                    train_home=args.train_home,
+                    test_home=test_home,
+                    )
 
 
