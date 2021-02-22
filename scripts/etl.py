@@ -44,7 +44,7 @@ class ETL(ModelBasics):
         self.days = []
         self.train, self.test = None, None
         self.log_flag = log_flag
-        self.format_logs(log_type='ETL')
+        self.format_logs(log_type='ETL', home=self.home)
         
         self.load_data(data_type=data_type)
 

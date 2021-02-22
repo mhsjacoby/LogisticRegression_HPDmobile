@@ -37,7 +37,7 @@ class TestModel(ModelBasics):
         self.get_directories()
 
         self.log_flag = log_flag
-        self.format_logs(log_type='Test')
+        self.format_logs(log_type='Test', home=self.train_home)
         self.gt_probabilities, self.gt_predictions = None, None
         self.gt_results, self.get_conf_mat = None, None
         # self.probabilities, self.predictions = None, None
@@ -98,36 +98,18 @@ class TestModel(ModelBasics):
 
         Returns: nothing
         """
-        X = self.X.to_numpy()
+        # X = self.X.to_numpy()
         y = self.y.to_numpy()
 
-        self.gt_probabilities, self.gt_predictions = get_predictions_wGT(logit_clf=logit_clf, X=X, y=y)
+        self.gt_yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
+        self.gt_predictions = self.gt_yhat_df.Predictions.to_numpy()
         self.gt_conf_mat, self.gt_results = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
         logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
 
-        # self.probabilities, self.predictions = self.test_with_predictions(logit_clf=logit_clf, X=X, y=y)
-        # self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
-        # logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
-
-        # print(self.X)
-        # counts = get_counts(df=self.X, stage='test', counts=self.counts)
-
-        # df = self.X
-        # print(f'Fill type {self.fill_type} Testing')
-        # print(f'images 0s {len(df[df.img == 0])}')
-        # print(f'images 1s {len(df[df.img == 1])}')
-        # print(f'total length {len(df)}')
-
-        # y_pred = self.test_with_predictions(logit_clf, self.X).to_numpy()
-        # y_true = self.y.to_numpy()
-
-        # test_metrics(y_true, y_pred)
-        # print('Testing with ground truth')
-
-        # X = self.X.to_numpy()
-        # y = self.y.to_numpy()
-        # results = get_model_metrics(logit_clf, X, y, pred_type='Test')
-        # self.predicted_probabilities, self.results_msg = results
+        self.yhat_df = self.test_with_predictions(logit_clf=logit_clf, X=self.X)
+        self.predictions = self.yhat_df.Predictions.to_numpy()
+        self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
+        logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
 
 
     def test_with_predictions(self, logit_clf, X, hr_lag=8):
@@ -136,61 +118,31 @@ class TestModel(ModelBasics):
         X_start = X.iloc[:lag_max]
         lag_cols=[c for c in X.columns if c.startswith('lag')]
         exog_vars = X.drop(columns=lag_cols).iloc[lag_max:]
-        new_X = pd.concat([X_start, exog_vars])
-        new_X.index = pd.to_datetime(new_X.index)
+        preds_X = pd.concat([X_start, exog_vars])
+        preds_X.index = pd.to_datetime(preds_X.index)
 
         ys = []
-        for idx, row in new_X.iterrows():
-            ts_minute = idx.minute
-            curr_X = new_X.loc[new_X.index.minute == ts_minute]
+        for idx, row in preds_X.iterrows():
             curr_row = row.to_numpy().reshape(1,-1)
             y_hat = logit_clf.predict(curr_row)
-
-            idx_loc = new_X.index.get_loc(idx)
+            y_proba = logit_clf.predict_proba(curr_row)[:,1]
+            idx_loc = preds_X.index.get_loc(idx)
 
             for j in range(1, hr_lag + 1):
                 lag_col_name = f'lag{j}_occupied'
-                ind_to_set = idx_loc + 12*j
+                ind_to_set = idx_loc + j*12
 
                 try:
-                    new_X.at[new_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
+                    preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
                 except:
                     continue
 
-            ys.append((idx, y_hat[0]))
-        y_hats = pd.DataFrame(ys).set_index(0)[1]
+            ys.append((idx, y_proba[0], y_hat[0]))
+        y_hats = pd.DataFrame(ys).set_index(0)
         y_hats.index.name = 'timestamp'
+        y_hats.columns = ['Probability', 'Predictions']
+
         return y_hats
-
-        print(y_hats.columns)
-
-
-
-# def test_metrics(y_true, y_hat, pred_type='Prediction Tests'):
-
-#     # y_hat = logit_clf.predict(X)
-#     conf_mat = pd.DataFrame(confusion_matrix(y_hat, y_true), 
-#                             columns = ['Vacant', 'Occupied'],
-#                             index = ['Vacant', 'Occupied']
-#                             )
-
-#     conf_mat = pd.concat([conf_mat], keys=['Actual'], axis=0)
-#     conf_mat = pd.concat([conf_mat], keys=['Predicted'], axis=1)
-
-#     # logging.info(f'\n{conf_mat}')
-#     print(f'\n{conf_mat}')
-
-#     # score = logit_clf.score(X, y)
-#     score = accuracy_score(y_true, y_hat)
-#     RMSE = np.sqrt(mean_squared_error(y_true, y_hat))
-
-#     results_msg = f'{pred_type} results on {len(y_hat)} predictions\n'\
-#                     f'\tScore: {score:.4}\n' \
-#                     f'\tRMSE: {RMSE:.4}\n'
-#     print(results_msg)
-
-
-
 
 
 if __name__ == '__main__':
@@ -207,6 +159,7 @@ if __name__ == '__main__':
     Test = TestModel(
                     train_home=args.train_home,
                     test_home=test_home,
+                    fill_type=args.fill_type,
                     log_flag=False
                     )
 

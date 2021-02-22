@@ -21,14 +21,23 @@ from datetime import datetime, date
 from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score
 
 
-def get_predictions_wGT(logit_clf, X, y):
+def get_predictions_wGT(logit_clf, X_df):
     """Run data through classifier to get predictions given X and y using ground truth for lags
 
     Returns: probabilities (between 0,1) and predictions (0/1)
     """
+
+    X = X_df.to_numpy()
+
     probs = logit_clf.predict_proba(X)[:,1]
     preds = logit_clf.predict(X)
-    return probs, preds
+    df = pd.DataFrame(
+                    data=np.transpose([probs, preds]), 
+                    index=X_df.index,
+                    columns=['Probability', 'Predictions']
+                    )
+    return df
+
 
 
 def get_model_metrics(y_true, y_hat):
@@ -97,7 +106,7 @@ class ModelBasics():
         return config
 
 
-    def format_logs(self, log_type):
+    def format_logs(self, log_type, home):
         """Creates log object and set logging parameters and format
 
         Returns: log object
@@ -105,7 +114,7 @@ class ModelBasics():
         os.makedirs(self.log_save_dir, exist_ok=True)
 
         logging.basicConfig(
-            filename=os.path.join(self.log_save_dir, f'{self.home}.log'),
+            filename=os.path.join(self.log_save_dir, f'{home}.log'),
             level=logging.INFO,
             format='%(message)s',
             datefmt='%Y-%m-%d',
