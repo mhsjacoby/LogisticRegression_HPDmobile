@@ -38,10 +38,11 @@ class TestModel(ModelBasics):
 
         self.log_flag = log_flag
         self.format_logs(log_type='Test', home=self.train_home)
-        self.gt_probabilities, self.gt_predictions = None, None
-        self.gt_results, self.get_conf_mat = None, None
-        # self.probabilities, self.predictions = None, None
-        # self.results, self.conf_mat = None, None
+
+        self.yhat_df, self.gt_yhat_df = None, None
+        self.predictions, self.gt_predictions = None, None
+        self.results, self.gt_results = None, None
+        self.conf_mat, self.gt_conf_mat = None, None
 
         if X_test is None or y_test is None:
             self.X, self.y = self.get_test_data()
@@ -98,7 +99,6 @@ class TestModel(ModelBasics):
 
         Returns: nothing
         """
-        # X = self.X.to_numpy()
         y = self.y.to_numpy()
 
         self.gt_yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
@@ -110,6 +110,7 @@ class TestModel(ModelBasics):
         self.predictions = self.yhat_df.Predictions.to_numpy()
         self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
         logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
+
 
 
     def test_with_predictions(self, logit_clf, X, hr_lag=8):

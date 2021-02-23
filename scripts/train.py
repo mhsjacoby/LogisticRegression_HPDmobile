@@ -34,9 +34,12 @@ class TrainModel(ModelBasics):
         self.home = home
         self.fill_type = fill_type
         self.get_directories()
+
         self.coeff_msg = None
-        self.probabilities, self.predictions = None, None
-        self.results, self.conf_mat = None, None
+        self.yhat_df = None
+        self.predictions = None
+        self.results = None
+        self.conf_mat = None
 
         self.log_flag = log_flag
         self.format_logs(log_type='Train', home=self.home)
@@ -103,27 +106,14 @@ class TrainModel(ModelBasics):
 
         self.coeff_msg = self.print_coeffs(logit_clf)
         logging.info(f'{self.coeff_msg}')
+        print(self.coeff_msg)
 
         self.yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
         self.predictions = self.yhat_df.Predictions.to_numpy()
-        # self.probabilities, self.predictions = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
         self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
         logging.info(f'\n=== TRAINING RESULTS === \n\n{self.conf_mat}\n')
 
         return logit_clf
-
-    # def get_predictions(self, logit_clf, X, y):
-    #     """Run data through classifier to get predictions given X and y
-
-    #     Prints the resulting confision matrix
-    #     Returns: probabilities (between 0,1) and predictions (0/1)
-    #     """
-    #     probs = logit_clf.predict_proba(X)[:,1]
-    #     preds = logit_clf.predict(X)
-
-    #     conf_mat, results = get_model_metrics(y_true=y, y_hat=preds)
-    #     logging.info(f'\n=== TRAINING RESULTS === \n\n{conf_mat}')
-    #     return probs, preds, results
 
 
     def print_coeffs(self, model):

@@ -52,11 +52,9 @@ Test_model = TestModel(
                 model_object=Model.model,
                 fill_type=args.fill_type,
                 )
-# print(Test_model.model)
 
-# print('\n==================================')
-print(f'\n=== Ground truth model trained/tested on {args.train_home}/{test_home} with fill type {args.fill_type}=== \n')
+print(f'\n=== Model trained/tested on {args.train_home}/{test_home} with fill type {args.fill_type}=== \n')
+print(f'\n=== Ground truth lags ===')
 print(Test_model.gt_results)
-
-# # print(test_model.predicted_probabilities)
-# # print(Test_model.counts)
+print(f'\n=== Prediction lags ===')
+print(Test_model.results)
