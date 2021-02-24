@@ -3,5 +3,5 @@
 penalty: l1
 solver: saga
 max_iter: 5000
-# C: .05
-Cs: 10
+C: .05
+# Cs: 10

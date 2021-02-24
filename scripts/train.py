@@ -89,7 +89,7 @@ class TrainModel(ModelBasics):
         
         print(f'\t>>> Training model with params: {self.configs}')
 
-        clf = LogisticRegressionCV().set_params(**self.configs)
+        clf = LogisticRegression().set_params(**self.configs)
         return clf
 
 
