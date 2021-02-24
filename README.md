@@ -81,10 +81,10 @@ This is the easiest way to run the above programs.
 
 Run the program from the terminal like this:
 `$ python3 run_train_test.py`
-Optional arguments: 
-`-train_home`  (default is H1)
-`-test_home` (if not specified, uses train home)  
-`-fill_type` (`zeros` (default), `ones`, or `ffill`)
+Optional arguments: \
+`-train_home`  (default is H1) \
+`-test_home` (if not specified, uses train home)  \
+`-fill_type` (`zeros` (default), `ones`, or `ffill`) \
 
 #TODO: Write loop that trains/tests multiple homes/sensors
 ___
