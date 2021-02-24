@@ -1,7 +1,7 @@
 """
 etl.py
 Author: Maggie Jacoby
-Last update: 2021-02-16
+Last update: 2021-02-22
 
 Extract-Transform-Load class for logistic regression models 
 Uses DataBasics as parent class

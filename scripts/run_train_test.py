@@ -1,17 +1,19 @@
 """
 run_train_test.py
 Authors: Maggie Jacoby
-Last update: 2021-02-18
+Last update: 2021-02-22
 """
 
 import os
 import sys
 import argparse
 from glob import glob
+import pandas as pd
 
 from train import TrainModel
 from test import TestModel
 from etl import ETL
+
 
 parser = argparse.ArgumentParser(description='Join ETL, Train, and Test functionality.')
 parser.add_argument('-train_home', '--train_home', default='H1', type=str, help='Home to train on, eg H1')
@@ -42,6 +44,7 @@ Model = TrainModel(
                 fill_type=args.fill_type,
                 )
 X_test, y_test = Data.split_xy(Data.test)
+# print(Model.coeff_msg)
 
 print('Testing...')
 Test_model = TestModel(
@@ -52,9 +55,4 @@ Test_model = TestModel(
                 model_object=Model.model,
                 fill_type=args.fill_type,
                 )
-
-print(f'\n=== Model trained/tested on {args.train_home}/{test_home} with fill type {args.fill_type}=== \n')
-print(f'\n=== Ground truth lags ===')
-print(Test_model.gt_results)
-print(f'\n=== Prediction lags ===')
 print(Test_model.results)

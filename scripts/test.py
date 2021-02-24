@@ -1,7 +1,7 @@
 """
 test.py
 Authors: Maggie Jacoby and Jasmine Garland
-Last update: 2021-02-16
+Last update: 2021-02-22
 """
 
 import os
@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
+from sklearn.metrics import confusion_matrix
 
 from data_basics import ModelBasics, get_model_metrics, get_predictions_wGT
 from train import TrainModel
@@ -104,16 +105,25 @@ class TestModel(ModelBasics):
         self.gt_yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
         self.gt_predictions = self.gt_yhat_df.Predictions.to_numpy()
         self.gt_conf_mat, self.gt_results = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
-        logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
+        # logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
 
         self.yhat_df = self.test_with_predictions(logit_clf=logit_clf, X=self.X)
         self.predictions = self.yhat_df.Predictions.to_numpy()
         self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
         logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
-
+        print(self.conf_mat)
+        self.print_results(self.yhat_df)
+        logging.info(f'{pd.DataFrame(self.results)}')
+        
 
 
     def test_with_predictions(self, logit_clf, X, hr_lag=8):
+        """Run data through classifier and push predictions forward as lag values
+
+        This is used instead of get_predictions_wGT.
+        Returns: probabilities (between 0,1) and predictions (0/1) as a df
+
+        """
         lag_max = hr_lag*12
 
         X_start = X.iloc[:lag_max]
@@ -144,6 +154,39 @@ class TestModel(ModelBasics):
         y_hats.columns = ['Probability', 'Predictions']
 
         return y_hats
+
+    def print_results(self, y_hat, i=0):
+        y_hat['Occupied'] = self.y
+        os.makedirs(self.results_csvs, exist_ok=True)
+
+        results_name = f'{self.train_home}_{self.test_home}_{self.fill_type}_*.csv'
+        existing_results = glob(os.path.join(self.results_csvs, results_name))
+        if len(existing_results) > 0:
+            i = int(sorted(existing_results)[-1].split('_')[-1].strip('.csv'))
+        fname = f'{self.train_home}_{self.test_home}_{self.fill_type}_{str(i+1)}.csv'
+
+        y_hat.to_csv(os.path.join(self.results_csvs, fname), index_label='timestamp')
+        logging.info(f'\nSaving results to {fname}')
+
+        conf_mat = confusion_matrix(y_hat['Occupied'], y_hat['Predictions']).ravel()
+        self.additional_metrics(conf_mat)
+
+    def additional_metrics(self, conf_mat):
+
+        tn, fp, fn, tp = conf_mat.ravel()
+
+        logging.info(f'\ntn: {tn} fp:{fp} fn:{fn}, tp:{tp}')
+        print(f'\ntn: {tn} fp:{fp} fn:{fn}, tp:{tp}')
+
+        tpr = tp/(tp+fn) if tp+fn > 0 else 0.0
+        fpr = fp/(tn+fp) if tn+fp > 0 else 0.0
+
+        tnr = tn/(tn+fp) if tn+fp > 0 else 0.0
+        fnr = fn/(tp+fn) if tp+fn > 0 else 0.0
+        logging.info(f'tnr: {tnr:.3} fpr:{fpr:.3} fnr:{fnr:.3}, tpr:{tpr:.3}')
+
+
+
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 """
 train.py
 Authors: Maggie Jacoby and Jasmine Garland
-Last update: 2021-02-17
+Last update: 2021-02-22
 """
 
 import os
@@ -89,7 +89,7 @@ class TrainModel(ModelBasics):
         
         print(f'\t>>> Training model with params: {self.configs}')
 
-        clf = LogisticRegression().set_params(**self.configs)
+        clf = LogisticRegressionCV().set_params(**self.configs)
         return clf
 
 
@@ -106,12 +106,11 @@ class TrainModel(ModelBasics):
 
         self.coeff_msg = self.print_coeffs(logit_clf)
         logging.info(f'{self.coeff_msg}')
-        print(self.coeff_msg)
 
         self.yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
         self.predictions = self.yhat_df.Predictions.to_numpy()
         self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
-        logging.info(f'\n=== TRAINING RESULTS === \n\n{self.conf_mat}\n')
+        # logging.info(f'\n=== TRAINING RESULTS === \n\n{self.conf_mat}\n')
 
         return logit_clf
 

@@ -1,7 +1,7 @@
 """
 data_basics.py
 Author: Maggie Jacoby
-Last update: 2021-02-17
+Last update: 2021-02-22
 
 TODO:
 - Make logging function more robust (add multiple file handlers) to log to multiple locations per session
@@ -24,7 +24,7 @@ from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_s
 def get_predictions_wGT(logit_clf, X_df):
     """Run data through classifier to get predictions given X and y using ground truth for lags
 
-    Returns: probabilities (between 0,1) and predictions (0/1)
+    Returns: probabilities (between 0,1) and predictions (0/1) as a df
     """
 
     X = X_df.to_numpy()
@@ -39,13 +39,12 @@ def get_predictions_wGT(logit_clf, X_df):
     return df
 
 
-
 def get_model_metrics(y_true, y_hat):
     """Stand-alone function to get metrics given a classifier.
 
     Returns: Confusion matrix and list of results as tuples
     """
-    conf_mat = pd.DataFrame(confusion_matrix(y_hat, y_true), 
+    conf_mat = pd.DataFrame(confusion_matrix(y_true, y_hat), 
                             columns = ['Vacant', 'Occupied'],
                             index = ['Vacant', 'Occupied']
                             )
@@ -85,7 +84,7 @@ class ModelBasics():
         self.data_dir = os.path.join(parent_dir, 'data')
         self.models_dir = os.path.join(parent_dir, 'models')
         self.raw_data = os.path.join(parent_dir, 'raw_data_files')
-        self.result_csvs = os.path.join(parent_dir, 'result_csvs')
+        self.results_csvs = os.path.join(parent_dir, 'results_csvs')
 
 
     def read_config(self, config_files, config_type='ETL'):
@@ -121,10 +120,10 @@ class ModelBasics():
             )
 
         if not self.log_flag:
-            logging.info(f'\n\t#### NEW RUN with {log_type} ####\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
+            logging.info(f'\n\n\t#### NEW RUN with {log_type} ####\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
             self.log_flag = True
         else:
-            logging.info(f'\n# {log_type} #\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
+            logging.info(f'\n## {log_type} ##')
 
 
 
