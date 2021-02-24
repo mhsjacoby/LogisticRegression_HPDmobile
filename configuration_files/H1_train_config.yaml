@@ -1,5 +1,7 @@
 # H1_train_config.yaml
 
-penalty: [l1]
-solver: [liblinear]
-C: [0.1, 1, 10]
+penalty: l1
+solver: saga
+max_iter: 5000
+# C: .05
+Cs: 10

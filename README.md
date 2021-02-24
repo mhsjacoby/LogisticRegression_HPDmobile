@@ -79,7 +79,7 @@ ___
 This file combines the above three class to create train/test datafile, train a model, and test it.
 This is the easiest way to run the above programs. 
 
-Run the program from the terminal like this:
+Run the program from the terminal like this:\
 `$ python3 run_train_test.py`
 Optional arguments: \
 `-train_home`  (default is H1) \
@@ -93,4 +93,4 @@ ___
 Other scripts to write:
 - `plot_predictions.py`: Read in csv results and create beautiful graphs to show performance.
 
-- `explore.py`: Perform model selection and corss validation to find the BEST model for each home.  
+- `explore.py`: Perform model selection and cross validation to find the BEST model for each home.  
