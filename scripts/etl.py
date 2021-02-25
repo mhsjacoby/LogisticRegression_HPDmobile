@@ -35,16 +35,18 @@ class ETL(ModelBasics):
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, home, fill_type='zeros', data_type='train and test', log_flag=True):
+    def __init__(self, hub, H_num='H1', fill_type='zeros', data_type='train and test', log_flag=True):
         
-        self.home = home
+        self.hub = hub
+        self.H_num = H_num
+        # self.hub = hub
         self.fill_type = fill_type
         self.get_directories()
         self.configs = None
         self.days = []
         self.train, self.test = None, None
         self.log_flag = log_flag
-        self.format_logs(log_type='ETL', home=self.home)
+        self.format_logs(log_type='ETL', home=self.H_num)
         
         self.load_data(data_type=data_type)
 
@@ -60,7 +62,9 @@ class ETL(ModelBasics):
         Returns: Nothing
         """
         dt1 = data_type.split(' ')[0]
-        check_name = os.path.join(self.data_dir, f'{dt1}_{self.home}_{self.fill_type}.csv')
+        check_name = os.path.join(self.data_dir, self.H_num, f'{dt1}_{self.hub}_{self.fill_type}.csv')
+        # print(check_name)
+        # sys.exit()
         data_exists = os.path.exists(check_name)
 
         assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
@@ -76,7 +80,7 @@ class ETL(ModelBasics):
                 self.test = self.read_csvs('test')
 
         else:
-            print(f'\t>>> Data fill type {self.fill_type} for {self.home} does not exist. Creating new files...')
+            print(f'\t>>> Data fill type {self.fill_type} for {self.hub} does not exist. Creating new files...')
             df = self.create_new_datafiles()
             self.train, self.test = self.get_train_test(df)
             self.write_data()
@@ -87,9 +91,11 @@ class ETL(ModelBasics):
 
         Returns: requested data file as pandas df
         """
-        data_files = glob(os.path.join(self.data_dir, f'{data_type}_{self.home}_{self.fill_type}.csv'))
+        data_files = glob(os.path.join(self.data_dir, self.H_num, f'{data_type}_{self.hub}_{self.fill_type}.csv'))
+        # print(os.path.join(self.data_dir, self.home, f'{data_type}_{self.home}_{self.fill_type}.csv'))
+        # sys.exit()       
         if len(data_files) == 0:
-            print(f'\t!!! No {data_type} files for {self.home}. Exiting program.')
+            print(f'\t!!! No {data_type} files for {self.hub}. Exiting program.')
             sys.exit()
 
         data_path = data_files[0]
@@ -110,11 +116,14 @@ class ETL(ModelBasics):
 
         Returns: pandas df (with all days)
         """ 
-        config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
+        # print(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
+        # sys.exit()
+        config_file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
         self.configs = self.read_config(config_files=config_file_list)
         self.days = self.get_days(self.configs['start_end'])
 
-        data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
+        data_path = os.path.join(self.raw_data, self.H_num, f'{self.hub}_prob.csv')
+        # data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
         df = self.read_infs(data_path=data_path)
         return df
 
@@ -186,7 +195,7 @@ class ETL(ModelBasics):
         df.insert(loc=0, column='day', value=df['date'].dt.date)
         df.drop(columns=['date'], inplace=True)
 
-        train_size = int(len(self.days) * 0.7) - 1
+        train_size = int(len(self.days) * 0.5)
         train_days = self.days[ :train_size]
         test_days = self.days[train_size: ]
         train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])
@@ -194,6 +203,8 @@ class ETL(ModelBasics):
 
         logging.info(f'Training: {len(train_days)} days from {train_days[0]} to {train_days[-1]}')
         logging.info(f'Testing: {len(test_days)} days from {test_days[0]} to {test_days[-1]}')
+        print(len(train_days))
+        print(len(test_days))
         
         train_df = df[df['day'].isin(train_days)]
         test_df = df[df['day'].isin(test_days)]
@@ -223,9 +234,9 @@ class ETL(ModelBasics):
 
         returns: nothing
         """
-        os.makedirs(self.data_dir, exist_ok=True)   
-        train_fname = os.path.join(self.data_dir, f'train_{self.home}_{self.fill_type}.csv')
-        test_fname = os.path.join(self.data_dir, f'test_{self.home}_{self.fill_type}.csv')
+        os.makedirs(os.path.join(self.data_dir, self.H_num), exist_ok=True)   
+        train_fname = os.path.join(self.data_dir, self.H_num, f'train_{self.hub}_{self.fill_type}.csv')
+        test_fname = os.path.join(self.data_dir, self.H_num, f'test_{self.hub}_{self.fill_type}.csv')
         logging.info(f'Writing data to {os.path.basename(train_fname)} and {os.path.basename(test_fname)}')
 
         self.train.to_csv(train_fname, index_label='timestamp')
@@ -249,17 +260,20 @@ class ETL(ModelBasics):
         pass
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     
-    parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
-    parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
-    parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
-    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
-    args = parser.parse_args()
+#     parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
+#     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
+#     parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
+#     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
+#     parser.add_argument('-hub', '--hub', default='H1RS4', type=str, help='Which hub to use')
+#     args = parser.parse_args()
 
-    Data = ETL(
-            home=args.home,
-            data_type=args.data_type,
-            fill_type=args.fill_type,
-            log_flag=False
-            )
+#     Data = ETL(
+#             H_num=args.home,
+#             hub=args.hub,
+#             data_type=args.data_type,
+#             fill_type=args.fill_type,
+#             # hub=args.hub,
+#             log_flag=False
+#             )

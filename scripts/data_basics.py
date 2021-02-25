@@ -61,8 +61,11 @@ def get_model_metrics(y_true, y_hat):
                         ('RMSE', f'{RMSE:.4}'),
                         ('F1', f'{f1:.4}')
                         ]
+    
+    # metrics = [r[1] for r in results_metrics[1:]]
+    metrics = {r[0]: r[1] for r in results_metrics[1:]}
 
-    return conf_mat, results_metrics
+    return conf_mat, results_metrics, metrics
 
 
 class ModelBasics():
@@ -93,7 +96,7 @@ class ModelBasics():
         Returns: configuration parameters
         """
         if len(config_files) == 0:
-            print(f'No {config_type} configuration file for {self.home}. Exiting program.')
+            print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
             sys.exit()
 
         config_file_path = config_files[0]

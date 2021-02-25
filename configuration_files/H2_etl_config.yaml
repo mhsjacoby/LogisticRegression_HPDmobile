@@ -1,0 +1,6 @@
+# H2_etl_config.yaml
+
+H_num: H2
+H_system: red
+start_end: [[2019-03-13, 2019-03-29]]
+num_hubs: 4
