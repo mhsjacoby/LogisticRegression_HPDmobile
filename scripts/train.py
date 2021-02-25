@@ -28,10 +28,11 @@ class TrainModel(ModelBasics):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, home, X_train=None, y_train=None, fill_type='zeros',
+    def __init__(self, H_num, hub, X_train=None, y_train=None, fill_type='zeros',
                 save_model=False, save_fname=None, config_file=None, log_flag=True):
 
-        self.home = home
+        self.H_num = H_num
+        self.hub = hub
         self.fill_type = fill_type
         self.get_directories()
 
@@ -42,7 +43,7 @@ class TrainModel(ModelBasics):
         self.conf_mat = None
 
         self.log_flag = log_flag
-        self.format_logs(log_type='Train', home=self.home)
+        self.format_logs(log_type='Train', home=self.H_num)
         config_file_list = self.pick_config_file(config_file)
         self.configs = self.read_config(config_files=config_file_list, config_type='Train')
 
@@ -60,7 +61,8 @@ class TrainModel(ModelBasics):
         """
         """
         if not config_file:
-            config_file_list = glob(os.path.join(self.config_dir, f'H1_train_*.yaml'))
+             config_file_list = glob(os.path.join(self.config_dir, f'H1_train_*.yaml'))
+            # config_file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_train_*.yaml'))
             # config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
         else:
             config_file_list = glob(os.path.join(self.config_dir, config_file))
@@ -73,7 +75,7 @@ class TrainModel(ModelBasics):
         Returns: training dataset
         """     
 
-        Data = ETL(self.home, fill_type=self.fill_type, data_type='train')
+        Data = ETL(H_num=self.H_num, hub=self.hub, fill_type=self.fill_type, data_type='train')
         X, y = Data.split_xy(Data.train)
         return X, y
 
@@ -135,10 +137,10 @@ class TrainModel(ModelBasics):
         """
         models = glob(os.path.join(model_save_dir, '*.pickle'))
         if not models:
-            fname = f'{self.home}_model.pickle'
+            fname = f'{self.hub}_model.pickle'
         else:
             model_num = len(models) + 1
-            fname = f'{self.home}_model_{model_num}.pickle'
+            fname = f'{self.hub}_model_{model_num}.pickle'
         return fname
 
 
@@ -167,22 +169,23 @@ class TrainModel(ModelBasics):
             logging.info(f'Overwriting previous {fname}')
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Train and save models')
-    parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
-    parser.add_argument('-save_fname', '--save_fname', default=None, help='Filename to save model to')
-    parser.add_argument('-config_file', '--config_file', default=None, help='Configuration file to use')
-    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
+#     parser = argparse.ArgumentParser(description='Train and save models')
+#     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
+#     parser.add_argument('-save_fname', '--save_fname', default=None, help='Filename to save model to')
+#     parser.add_argument('-config_file', '--config_file', default=None, help='Configuration file to use')
+#     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
 
-    args = parser.parse_args()
+#     args = parser.parse_args()
     
-    Model = TrainModel(
-                    home=args.home,
-                    config_file=args.config_file,
-                    fill_type=args.fill_type,
-                    save_model=True,
-                    save_fname=args.save_fname,
-                    log_flag=False
-                    )
+#     Model = TrainModel(
+#                     home=args.home,
+#                     config_file=args.config_file,
+#                     # config_file='/Users/maggie/Documents/Github/LogisticRegression_HPDmobile/configuration_files/H1_train_config.yaml',
+#                     fill_type=args.fill_type,
+#                     save_model=True,
+#                     save_fname=args.save_fname,
+#                     log_flag=False
+#                     )
 

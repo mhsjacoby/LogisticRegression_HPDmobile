@@ -29,16 +29,16 @@ class TestModel(ModelBasics):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, train_home, test_home, X_test=None, y_test=None, fill_type='zeros',
+    def __init__(self, H_num, train_hub, test_hub, X_test=None, y_test=None, fill_type='zeros',
                 model_object=None, model_name=None, save_results=True, log_flag=True):
-        
-        self.train_home = train_home
-        self.test_home = test_home
+        self.H_num = H_num
+        self.train_hub = train_hub
+        self.test_hub = test_hub
         self.fill_type = fill_type
         self.get_directories()
 
         self.log_flag = log_flag
-        self.format_logs(log_type='Test', home=self.train_home)
+        self.format_logs(log_type='Test', home=self.H_num)
 
         self.yhat_df, self.gt_yhat_df = None, None
         self.predictions, self.gt_predictions = None, None
@@ -65,9 +65,9 @@ class TestModel(ModelBasics):
 
         Returns: testing dataset
         """
-        logging.info(f'Testing with data from {self.test_home}')
+        logging.info(f'Testing with data from {self.test_hub}')
 
-        Data = ETL(self.test_home, fill_type=self.fill_type, data_type='test')
+        Data = ETL(hub=self.test_hub, fill_type=self.fill_type, data_type='test')
         X, y = Data.split_xy(Data.test)
         return X, y
 
@@ -78,10 +78,10 @@ class TestModel(ModelBasics):
         Returns: sklearn logistic regression model object
         """
         if model_to_test is not None:
-            model_fname = f'{self.train_home}_{model_to_test}.pickle'
+            model_fname = f'{self.train_hub}_{model_to_test}.pickle'
         else:
-            model_fname = f'{self.train_home}_*.pickle'
-        possible_models = glob(os.path.join(self.models_dir, self.train_home, model_fname))
+            model_fname = f'{self.train_hub}_*.pickle'
+        possible_models = glob(os.path.join(self.models_dir, self.train_hub, model_fname))
 
         if len(possible_models) == 0:
             print(f'\t!!! No model named {model_fname}. Exiting program.')
@@ -161,13 +161,14 @@ class TestModel(ModelBasics):
         y_hat['Occupied'] = self.y
         os.makedirs(self.results_csvs, exist_ok=True)
 
-        results_name = f'{self.train_home}_{self.test_home}_{self.fill_type}_*.csv'
-        existing_results = glob(os.path.join(self.results_csvs, results_name))
+        results_name = f'{self.train_hub}_{self.test_hub}_{self.fill_type}_*.csv'
+        existing_results = glob(os.path.join(self.results_csvs, self.H_num, results_name))
         if len(existing_results) > 0:
             i = int(sorted(existing_results)[-1].split('_')[-1].strip('.csv'))
-        fname = f'{self.train_home}_{self.test_home}_{self.fill_type}_{str(i+1)}.csv'
+        fname = f'{self.train_hub}_{self.test_hub}_{self.fill_type}_{str(i+1)}.csv'
 
-        y_hat.to_csv(os.path.join(self.results_csvs, fname), index_label='timestamp')
+        os.makedirs(os.path.join(self.results_csvs, self.H_num), exist_ok=True)
+        y_hat.to_csv(os.path.join(self.results_csvs, self.H_num, fname), index_label='timestamp')
         logging.info(f'\nSaving results to {fname}')
 
         conf_mat = confusion_matrix(y_hat['Occupied'], y_hat['Predictions']).ravel()
@@ -193,21 +194,21 @@ class TestModel(ModelBasics):
 
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Test models')
-    parser.add_argument('-train_home', '--train_home', default='H1', type=str, help='Home to get data for, eg H1')
-    parser.add_argument('-test_home', '--test_home', default=None, help='Home to test on, if different from train')
-    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
+#     parser = argparse.ArgumentParser(description='Test models')
+#     parser.add_argument('-train_home', '--train_home', default='H1', type=str, help='Home to get data for, eg H1')
+#     parser.add_argument('-test_home', '--test_home', default=None, help='Home to test on, if different from train')
+#     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
 
-    args = parser.parse_args()
+#     args = parser.parse_args()
     
-    test_home = args.train_home if not args.test_home else args.test_home
+#     test_home = args.train_home if not args.test_home else args.test_home
 
-    Test = TestModel(
-                    train_home=args.train_home,
-                    test_home=test_home,
-                    fill_type=args.fill_type,
-                    log_flag=False
-                    )
+#     Test = TestModel(
+#                     train_home=args.train_home,
+#                     test_home=test_home,
+#                     fill_type=args.fill_type,
+#                     log_flag=False
+#                     )
 

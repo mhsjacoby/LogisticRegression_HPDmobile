@@ -96,7 +96,7 @@ class ModelBasics():
         Returns: configuration parameters
         """
         if len(config_files) == 0:
-            print(f'No {config_type} configuration file for {self.home}. Exiting program.')
+            print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
             sys.exit()
 
         config_file_path = config_files[0]

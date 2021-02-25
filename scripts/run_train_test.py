@@ -29,14 +29,15 @@ test_home = args.train_home if not args.test_home else args.test_home
 
 
 
-def run_train_test(train_home, test_home, fill_type='zeros'):
+def run_train_test(train_hub, test_hub, h='H1', fill_type='zeros'):
 
-    print(f'\n\t======== Running train/test with hubs {train_home}/{test_home} ========\n')
+    print(f'\n\t======== Running train/test with hubs {train_hub}/{test_hub} ========\n')
 
     print('ETL...')
     
     Data = ETL(
-            home=train_home,
+            H_num=h,
+            hub=train_hub,
             data_type='train and test',
             fill_type=fill_type,
             log_flag=False
@@ -46,7 +47,8 @@ def run_train_test(train_home, test_home, fill_type='zeros'):
 
     print('Training...')
     Model = TrainModel(
-                    home=train_home,
+                    H_num=h,
+                    hub=train_hub,
                     X_train=X_train,
                     y_train=y_train,
                     fill_type=fill_type,
@@ -54,11 +56,12 @@ def run_train_test(train_home, test_home, fill_type='zeros'):
     # print(Model.coeff_msg)
 
 
-    if test_home == train_home:
+    if test_hub == train_hub:
         X_test, y_test = Data.split_xy(Data.test)
     else:
         testData = ETL(
-            home=test_home,
+            H_num=h,
+            hub=test_hub,
             data_type='test',
             fill_type=fill_type
             )
@@ -67,8 +70,9 @@ def run_train_test(train_home, test_home, fill_type='zeros'):
     
     print('Testing...')
     Test_model = TestModel(
-                    train_home=train_home,
-                    test_home=test_home,
+                    H_num=h,
+                    train_hub=train_hub,
+                    test_hub=test_hub,
                     X_test=X_test,
                     y_test=y_test,
                     model_object=Model.model,
@@ -78,35 +82,38 @@ def run_train_test(train_home, test_home, fill_type='zeros'):
     return Test_model.metrics, Test_model.results_fname, Model.coeff_df
 
 
+
+
+hubs_used = [1,2,3,4,5]
+h_num = 'H1'
+
 curr_fill = args.fill_type
-list_of_hubs = ['H1RS1', 'H1RS2', 'H1RS3', 'H1RS4', 'H1RS5']
 hub_results, coeff_list, coeff_cols = [], [], []
+
+list_of_hubs = [f'{h_num}RS{str(i)}' for i in hubs_used]
 
 for pair in itertools.product(list_of_hubs, repeat=2):
     tr, ts = pair
-    run, fname, coeffs = run_train_test(train_home=tr, test_home=ts, fill_type=curr_fill)
+    run, fname, coeffs = run_train_test(h=h_num, train_hub=tr, test_hub=ts, fill_type=curr_fill)
     run_df = pd.DataFrame(data=run, index=[0])
     self_cross = 'self' if tr == ts else 'cross'
     if tr == ts:
         coeff_list.append(coeffs)
-        coeff_cols.append(tr.replace('H1RS', 'hub-'))
-    else:
-        continue
-#     run_df[['Train', 'Test', 'Fill', 'Self/Cross', 'fname']] = [
-#             tr.replace('H1RS', 'hub-'), 
-#             ts.replace('H1RS', 'hub-'), 
-#             args.fill_type,
-#             self_cross,
-#             fname
-#             ]
-#     hub_results.append(run_df)
+        coeff_cols.append(tr.replace(f'{h_num}RS', 'hub-'))
+
+    run_df[['Train', 'Test', 'Fill', 'Self/Cross', 'fname']] = [
+            tr.replace(f'{h_num}RS', 'hub-'), 
+            ts.replace(f'{h_num}RS', 'hub-'), 
+            args.fill_type,
+            self_cross,
+            fname
+            ]
+    hub_results.append(run_df)
 #     sys.exit()
-# df = pd.concat(hub_results, axis=0)
+df = pd.concat(hub_results, axis=0)
 # print(df)
-# df.to_csv(os.path.join('/Users/maggie/Desktop/excel_results', f'H1_{curr_fill}.csv'), index=False)
+df.to_csv(os.path.join('/Users/maggie/Desktop/excel_results', f'{h_num}_{curr_fill}.csv'), index=False)
 coeffs_df = pd.concat(coeff_list, axis=1)
 coeffs_df.columns=coeff_cols
 print(coeffs_df)
-coeffs_df.to_csv(os.path.join('/Users/maggie/Desktop/excel_results', f'H1_{curr_fill}_coeffs.csv'), index=True)
-
-# def parse_coeff_msg()
+coeffs_df.to_csv(os.path.join('/Users/maggie/Desktop/excel_results', f'{h_num}_{curr_fill}_coeffs.csv'), index=True)
