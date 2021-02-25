@@ -57,6 +57,7 @@ class TestModel(ModelBasics):
         self.save_results = save_results
 
         self.test_model(self.model)
+        self.results_fname = self.print_results(self.yhat_df)
 
 
     def get_test_data(self):
@@ -104,15 +105,15 @@ class TestModel(ModelBasics):
 
         self.gt_yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
         self.gt_predictions = self.gt_yhat_df.Predictions.to_numpy()
-        self.gt_conf_mat, self.gt_results = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
+        self.gt_conf_mat, self.gt_results, _ = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
         # logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
 
         self.yhat_df = self.test_with_predictions(logit_clf=logit_clf, X=self.X)
         self.predictions = self.yhat_df.Predictions.to_numpy()
-        self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
+        self.conf_mat, self.results, self.metrics = get_model_metrics(y_true=y, y_hat=self.predictions)
         logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
         print(self.conf_mat)
-        self.print_results(self.yhat_df)
+        
         logging.info(f'{pd.DataFrame(self.results)}')
         
 
@@ -155,6 +156,7 @@ class TestModel(ModelBasics):
 
         return y_hats
 
+
     def print_results(self, y_hat, i=0):
         y_hat['Occupied'] = self.y
         os.makedirs(self.results_csvs, exist_ok=True)
@@ -170,6 +172,8 @@ class TestModel(ModelBasics):
 
         conf_mat = confusion_matrix(y_hat['Occupied'], y_hat['Predictions']).ravel()
         self.additional_metrics(conf_mat)
+        return fname
+
 
     def additional_metrics(self, conf_mat):
 

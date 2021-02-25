@@ -60,7 +60,8 @@ class TrainModel(ModelBasics):
         """
         """
         if not config_file:
-            config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
+            config_file_list = glob(os.path.join(self.config_dir, f'H1_train_*.yaml'))
+            # config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_train_*.yaml'))
         else:
             config_file_list = glob(os.path.join(self.config_dir, config_file))
         return config_file_list
@@ -109,7 +110,7 @@ class TrainModel(ModelBasics):
 
         self.yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
         self.predictions = self.yhat_df.Predictions.to_numpy()
-        self.conf_mat, self.results = get_model_metrics(y_true=y, y_hat=self.predictions)
+        self.conf_mat, self.results, self.metrics = get_model_metrics(y_true=y, y_hat=self.predictions)
         # logging.info(f'\n=== TRAINING RESULTS === \n\n{self.conf_mat}\n')
 
         return logit_clf
@@ -119,6 +120,8 @@ class TrainModel(ModelBasics):
 
         coeff_msg = f'\nCoefficients:\n{pd.Series(model.coef_[0], index=self.X.columns).to_string()}\n' \
                         f'intercept\t{model.intercept_[0]}'
+        self.coeff_df = pd.Series(model.coef_[0], index=self.X.columns)
+        self.coeff_df = self.coeff_df.append(pd.Series(model.intercept_[0], index=['Intercept']))
         return coeff_msg
 
 

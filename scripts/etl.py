@@ -38,6 +38,7 @@ class ETL(ModelBasics):
     def __init__(self, home, fill_type='zeros', data_type='train and test', log_flag=True):
         
         self.home = home
+        # self.hub = hub
         self.fill_type = fill_type
         self.get_directories()
         self.configs = None
@@ -110,11 +111,12 @@ class ETL(ModelBasics):
 
         Returns: pandas df (with all days)
         """ 
-        config_file_list = glob(os.path.join(self.config_dir, f'{self.home}_etl_*.yaml'))
+        config_file_list = glob(os.path.join(self.config_dir, f'H1_etl_*.yaml'))
         self.configs = self.read_config(config_files=config_file_list)
         self.days = self.get_days(self.configs['start_end'])
 
-        data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
+        data_path = os.path.join(self.raw_data, f'{self.home}_prob.csv')
+        # data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
         df = self.read_infs(data_path=data_path)
         return df
 
@@ -255,11 +257,13 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
+    # parser.add_argument('-hub', '--hub', default='RS4', type=str, help='Which hub to use')
     args = parser.parse_args()
 
     Data = ETL(
             home=args.home,
             data_type=args.data_type,
             fill_type=args.fill_type,
+            # hub=args.hub,
             log_flag=False
             )
