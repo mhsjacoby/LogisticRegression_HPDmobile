@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
-from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score
+from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score, matthews_corrcoef
 
 
 def get_predictions_wGT(logit_clf, X_df):
@@ -54,16 +54,21 @@ def get_model_metrics(y_true, y_hat):
     score = accuracy_score(y_true, y_hat)
     RMSE = np.sqrt(mean_squared_error(y_true, y_hat))
     f1 = f1_score(y_true, y_hat)
+    f1_rev = f1_score(y_true, y_hat, pos_label=0)
+
+    mcc = matthews_corrcoef(y_true, y_hat)
 
     results_metrics = [
                         ('length', len(y_true)),
                         ('Accuracy', f'{score:.4}'),
                         ('RMSE', f'{RMSE:.4}'),
-                        ('F1', f'{f1:.4}')
+                        ('F1', f'{f1:.4}'),
+                        ('F1 neg', f'{f1_rev:.4}'),
+                        ('MCC', f'{mcc:.4}')
                         ]
     
     # metrics = [r[1] for r in results_metrics[1:]]
-    metrics = {r[0]: r[1] for r in results_metrics[1:]}
+    metrics = {r[0]: r[1] for r in results_metrics}
 
     return conf_mat, results_metrics, metrics
 

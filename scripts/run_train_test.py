@@ -79,7 +79,7 @@ def run_train_test(train_hub, test_hub, h='H1', fill_type='zeros'):
                     fill_type=fill_type,
                     )
     # print(Model.coeff_df)
-    return Test_model.metrics, Test_model.results_fname, Model.coeff_df
+    return Test_model.metrics, Test_model.results_fname, Model.coeff_df, Model.best_C
 
 
 
@@ -94,16 +94,18 @@ list_of_hubs = [f'{h_num}RS{str(i)}' for i in hubs_used]
 
 for pair in itertools.product(list_of_hubs, repeat=2):
     tr, ts = pair
-    run, fname, coeffs = run_train_test(h=h_num, train_hub=tr, test_hub=ts, fill_type=curr_fill)
+    run, fname, coeffs, best_c = run_train_test(h=h_num, train_hub=tr, test_hub=ts, fill_type=curr_fill)
+    # c.append(best_c)
     run_df = pd.DataFrame(data=run, index=[0])
     self_cross = 'self' if tr == ts else 'cross'
     if tr == ts:
         coeff_list.append(coeffs)
         coeff_cols.append(tr.replace(f'{h_num}RS', 'hub-'))
 
-    run_df[['Train', 'Test', 'Fill', 'Self/Cross', 'fname']] = [
+    run_df[['Train', 'Test', 'C', 'Fill', 'Self/Cross', 'fname']] = [
             tr.replace(f'{h_num}RS', 'hub-'), 
             ts.replace(f'{h_num}RS', 'hub-'), 
+            best_c,
             args.fill_type,
             self_cross,
             fname
