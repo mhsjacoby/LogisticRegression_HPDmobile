@@ -56,8 +56,7 @@ class TestModel(ModelBasics):
             self.model = self.import_model(model_name)
         self.save_results = save_results
 
-        # self.test_model(self.model, get_predictions_wGT)
-        self.test_model(self.model, self.test_with_predictions)
+        self.test_model(self.model)
         self.results_fname = self.print_results(self.yhat_df)
 
 
@@ -97,59 +96,34 @@ class TestModel(ModelBasics):
         return model
 
 
-    # def test_model(self, logit_clf):
-    #     """Test the trained model on unseen data
-
-    #     Returns: nothing
-    #     """
-    #     y = self.y.to_numpy()
-
-    #     self.gt_yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
-    #     self.gt_predictions = self.gt_yhat_df.Predictions.to_numpy()
-    #     self.gt_conf_mat, self.gt_results, _ = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
-    #     # logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
-
-    #     self.yhat_df = self.test_with_predictions(logit_clf=logit_clf, X=self.X)
-    #     self.predictions = self.yhat_df.Predictions.to_numpy()
-    #     self.conf_mat, self.results, self.metrics = get_model_metrics(y_true=y, y_hat=self.predictions)
-    #     logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
-    #     print(self.conf_mat)
-        
-    #     logging.info(f'{pd.DataFrame(self.results)}')
-
-
-    def test_model(self, logit_clf, test_method):
+    def test_model(self, logit_clf, test_gt=False):
         """Test the trained model on unseen data
 
         Returns: nothing
         """
         y = self.y.to_numpy()
 
-        
-        # self.gt_yhat_df = get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
-        # self.gt_predictions = self.gt_yhat_df.Predictions.to_numpy()
-        # self.gt_conf_mat, self.gt_results, _ = get_model_metrics(y_true=y, y_hat=self.gt_predictions)
-        # # logging.info(f'\n=== TESTING RESULTS USING GROUND TRUTH LAGS === \n\n{self.gt_conf_mat}')
+        if test_gt:
+            print('Using ground truth, NOT predictions')
+            self.yhat_df =  get_predictions_wGT(logit_clf=logit_clf, X_df=self.X)
+        else:
+            self.yhat_df = self.test_with_predictions(logit_clf=logit_clf, X=self.X)
 
-        self.yhat_df = test_method(logit_clf=logit_clf, X_df=self.X)
         self.predictions = self.yhat_df.Predictions.to_numpy()
         self.conf_mat, self.results, self.metrics = get_model_metrics(y_true=y, y_hat=self.predictions)
-        # logging.info(f'\n=== TESTING RESULTS USING ONLY PAST PREDICTIONS === \n\n{self.conf_mat}')
         print(self.conf_mat)
         
         logging.info(f'{pd.DataFrame(self.results)}')
         
         
-
-
-    def test_with_predictions(self, logit_clf, X_df, hr_lag=8):
+    def test_with_predictions(self, logit_clf, X, hr_lag=8):
         """Run data through classifier and push predictions forward as lag values
 
         This is used instead of get_predictions_wGT.
         Returns: probabilities (between 0,1) and predictions (0/1) as a df
 
         """
-        X = X_df
+
         lag_max = hr_lag*12
 
         X_start = X.iloc[:lag_max]
@@ -159,8 +133,11 @@ class TestModel(ModelBasics):
         preds_X.index = pd.to_datetime(preds_X.index)
 
         ys = []
-        for idx, row in preds_X.iterrows():
-            curr_row = row.to_numpy().reshape(1,-1)
+
+        for idx, _ in preds_X.iterrows():
+            df_row = preds_X.loc[idx]
+            curr_row = df_row.to_numpy().reshape(1,-1)
+
             y_hat = logit_clf.predict(curr_row)
             y_proba = logit_clf.predict_proba(curr_row)[:,1]
             idx_loc = preds_X.index.get_loc(idx)
@@ -168,7 +145,6 @@ class TestModel(ModelBasics):
             for j in range(1, hr_lag + 1):
                 lag_col_name = f'lag{j}_occupied'
                 ind_to_set = idx_loc + j*12
-
                 try:
                     preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
                 except:

@@ -17,6 +17,7 @@ import sys
 import csv
 import argparse
 import logging
+import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
@@ -48,42 +49,68 @@ class ETL(ModelBasics):
         self.log_flag = log_flag
         self.format_logs(log_type='ETL', home=self.H_num)
         
-        self.load_data(data_type=data_type)
+        # self.load_data(data_type=data_type)
+        self.get_data(data_type=data_type)
 
 
-    def load_data(self, data_type):
-        """Checks if the data type specified exists, decides how to load the data.
+    def get_data(self, data_type, make_new=True):
+        """Creates new data sets or loads existing
 
-        If previous csvs exist for train/test, loads the one(s) requested,
-        otherwise creates new ones and writes csvs.
-        Sets values of self.train and/or self.test by reading in or create new.
-        Can load train and/or test, but if creating, it creates both.
+        If new data is requested it makes new without writing the results
+        otherwise it checks to see if the data type specified exists, then loads or creates new
 
         Returns: Nothing
         """
-        dt1 = data_type.split(' ')[0]
-        check_name = os.path.join(self.data_dir, self.H_num, f'{dt1}_{self.hub}_{self.fill_type}.csv')
-        # print(check_name)
-        # sys.exit()
-        data_exists = os.path.exists(check_name)
 
-        assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
-
-        if data_exists:
-
-            if data_type == 'train':
-                self.train = self.read_csvs(data_type)
-            elif data_type == 'test':
-                self.test = self.read_csvs(data_type)
-            else:
-                self.train = self.read_csvs('train')
-                self.test = self.read_csvs('test')
+        if make_new:
+            df = self.create_new()
+            self.train, self.test = self.get_train_test(df)
 
         else:
-            print(f'\t>>> Data fill type {self.fill_type} for {self.hub} does not exist. Creating new files...')
-            df = self.create_new_datafiles()
-            self.train, self.test = self.get_train_test(df)
-            self.write_data()
+            dt1 = data_type.split(' ')[0]
+            assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
+            check_name = os.path.join(self.data_dir, self.H_num, f'{dt1}_{self.hub}_{self.fill_type}.csv')
+            data_exists = os.path.exists(check_name)
+
+            if data_exists:
+                self.load_data(data_type)
+            else:
+                df = self.create_new()
+                self.train, self.test = self.get_train_test(df)
+                self.write_data()
+
+
+
+
+
+    def load_data(self, data_type):
+        """Sets values of self.train and/or self.test by reading in or create new.
+
+        Returns: Nothing
+        """
+        # dt1 = data_type.split(' ')[0]
+        # check_name = os.path.join(self.data_dir, self.H_num, f'{dt1}_{self.hub}_{self.fill_type}.csv')
+        # # print(check_name)
+        # # sys.exit()
+        # data_exists = os.path.exists(check_name)
+
+        # assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
+
+        # if data_exists:
+
+        if data_type == 'train':
+            self.train = self.read_csvs(data_type)
+        elif data_type == 'test':
+            self.test = self.read_csvs(data_type)
+        else:
+            self.train = self.read_csvs('train')
+            self.test = self.read_csvs('test')
+
+        # else:
+        #     print(f'\t>>> Data fill type {self.fill_type} for {self.hub} does not exist. Creating new files...')
+        #     df = self.create_new()
+        #     self.train, self.test = self.get_train_test(df)
+        #     self.write_data()
 
 
     def read_csvs(self, data_type):
@@ -107,7 +134,7 @@ class ETL(ModelBasics):
         return data_type_df
 
 
-    def create_new_datafiles(self):
+    def create_new(self):
         """Sets up the conditions to read in raw inferences.
 
         This is only called if no test/train csv data exists yet.
@@ -116,14 +143,12 @@ class ETL(ModelBasics):
 
         Returns: pandas df (with all days)
         """ 
-        # print(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
-        # sys.exit()
+        print('Creating new datasets...')
         config_file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
         self.configs = self.read_config(config_files=config_file_list)
         self.days = self.get_days(self.configs['start_end'])
 
         data_path = os.path.join(self.raw_data, self.H_num, f'{self.hub}_prob.csv')
-        # data_path = os.path.join(self.raw_data, f'{self.home}_RS4_prob.csv')
         df = self.read_infs(data_path=data_path)
         return df
 
@@ -160,7 +185,25 @@ class ETL(ModelBasics):
         df['occupied'] = df['occupied'].apply(lambda x: 1 if (x >= thresh) else 0)
 
         df = self.fill_df(df=df, fill_type=self.fill_type)
+        df = self.create_HOD(df)
         df = self.create_lags(df)
+        return df
+
+
+    def create_HOD(self, df):
+
+        df['date'] = pd.to_datetime(df.index) 
+        df.insert(loc=0, column='day', value=df['date'].dt.date)
+        df.insert(loc=1, column='hour', value=df['date'].dt.hour+df['date'].dt.minute/60)
+        df.insert(loc=2, column='DOW', value=df['date'].dt.weekday)
+        df['weekday'] = 0
+        df.loc[df.DOW > 4, 'weekday'] = 1
+
+        df['hr_sin'] = np.sin(df.hour*(2.*np.pi/24))
+        df['hr_cos'] = np.cos(df.hour*(2.*np.pi/24))
+
+        df.drop(columns=['date', 'DOW', 'hour'], inplace=True)
+
         return df
 
 
@@ -191,9 +234,6 @@ class ETL(ModelBasics):
         Returns: training set and testing set
         """
         df = DF.copy()
-        df['date'] = pd.to_datetime(df.index) 
-        df.insert(loc=0, column='day', value=df['date'].dt.date)
-        df.drop(columns=['date'], inplace=True)
 
         train_size = int(len(self.days) * 0.5)
         train_days = self.days[ :train_size]
@@ -203,11 +243,12 @@ class ETL(ModelBasics):
 
         logging.info(f'Training: {len(train_days)} days from {train_days[0]} to {train_days[-1]}')
         logging.info(f'Testing: {len(test_days)} days from {test_days[0]} to {test_days[-1]}')
-        print(len(train_days))
-        print(len(test_days))
+        print('Train days:', len(train_days))
+        print('Test days:', len(test_days))
         
         train_df = df[df['day'].isin(train_days)]
         test_df = df[df['day'].isin(test_days)]
+
         return train_df, test_df
 
 
