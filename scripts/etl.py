@@ -36,10 +36,12 @@ class ETL(ModelBasics):
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, hub, H_num='H1', fill_type='zeros', data_type='train and test', log_flag=True):
+    def __init__(self, hub, H_num, fill_type='zeros', data_type='train and test', log_flag=True):
+        # print('hub', hub)
         
         self.hub = hub
         self.H_num = H_num
+        # self.H_num = hub[:2]
         # self.hub = hub
         self.fill_type = fill_type
         self.get_directories()
@@ -235,7 +237,7 @@ class ETL(ModelBasics):
         """
         df = DF.copy()
 
-        train_size = int(len(self.days) * 0.5)
+        train_size = int(len(self.days) * 0.6)
         train_days = self.days[ :train_size]
         test_days = self.days[train_size: ]
         train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])

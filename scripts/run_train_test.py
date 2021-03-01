@@ -21,13 +21,14 @@ from etl import ETL
 local_save_path = '/Users/maggie/Desktop/excel_results'
 
 
-def run_train_test(train_hub, test_hub, h='H1', fill_type='zeros'):
+def run_train_test(train_hub, test_hub, fill_type='zeros'):
 
     print(f'\n\t======== Running train/test with hubs {train_hub}/{test_hub} ========\n')
+    train_h, test_h = tr[:2], ts[:2]
 
     print('ETL...')
     Data = ETL(
-            H_num=h,
+            H_num=train_h,
             hub=train_hub,
             data_type='train and test',
             fill_type=fill_type,
@@ -38,7 +39,7 @@ def run_train_test(train_hub, test_hub, h='H1', fill_type='zeros'):
 
     print('Training...')
     Model = TrainModel(
-                    H_num=h,
+                    H_num=train_h,
                     hub=train_hub,
                     X_train=X_train,
                     y_train=y_train,
@@ -48,18 +49,19 @@ def run_train_test(train_hub, test_hub, h='H1', fill_type='zeros'):
     if test_hub == train_hub:
         X_test, y_test = Data.split_xy(Data.test)
     else:
+        print('getting new')
         testData = ETL(
-            H_num=h,
-            hub=test_hub,
-            data_type='test',
-            fill_type=fill_type
-            )
+                    H_num=test_h,
+                    hub=test_hub,
+                    data_type='test',
+                    fill_type=fill_type
+                    )
         X_test, y_test = testData.split_xy(testData.test)
 
     
     print('Testing...')
     Test_model = TestModel(
-                    H_num=h,
+                    H_num=test_h,
                     train_hub=train_hub,
                     test_hub=test_hub,
                     X_test=X_test,
@@ -90,7 +92,9 @@ if __name__=='__main__':
     color = args.system
     hubs_used = [1,2,3,4,5] if not args.hubs else args.hubs
 
-    list_of_hubs = [f'{train_home}{color}S{str(i)}' for i in hubs_used]
+    list_of_hubs = ['H1RS4', 'H2RS5']
+    # list_of_hubs = [f'{train_home}{color}S{str(i)}' for i in hubs_used]
+
 
     hub_results, coeff_list, coeff_cols = [], [], []
 
@@ -99,7 +103,6 @@ if __name__=='__main__':
         tr, ts = pair
         
         run, fname, coeffs, best_c = run_train_test(
-                                                    h=h_num,
                                                     train_hub=tr,
                                                     test_hub=ts, 
                                                     fill_type=curr_fill

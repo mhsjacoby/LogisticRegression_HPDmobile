@@ -101,6 +101,8 @@ class TestModel(ModelBasics):
 
         Returns: nothing
         """
+        # print(self.X.columns)
+        # sys.exit()
         y = self.y.to_numpy()
 
         if test_gt:
@@ -111,10 +113,40 @@ class TestModel(ModelBasics):
 
         self.predictions = self.yhat_df.Predictions.to_numpy()
         self.conf_mat, self.results, self.metrics = get_model_metrics(y_true=y, y_hat=self.predictions)
-        print(self.conf_mat)
-        
+        # print(self.conf_mat)
+        # y_hat_baseline = self.baseline_results(X=self.X)
+        # # print(y_hat_baseline)
+        # y_hate_baseline = y_hat_baseline.to_numpy()
+        # conf_mat_bl, results_bl, blm = get_model_metrics(y_true=y, y_hat=y_hat_baseline)
+
+        # self.metrics.update({'BL_env F1 neg': blm['F1 neg'], 'BL_env F1': blm['F1 neg'], 'BL_env Acc': blm['Accuracy']})
+
+        self.baseline_results(X=self.X, y=y)
+
+        # print(self.metrics)
+        # sys.exit()
         logging.info(f'{pd.DataFrame(self.results)}')
-        
+
+
+    def baseline_results(self, X, y):
+        """Get baseline results to compare LR to
+
+        Uses the previous OR gate and generate predictions
+
+        Returns: y_hat (predictions) and f1(rev) and accuracy
+        """
+        base_cols = ['audio', 'img']
+        full_cols =  base_cols + ['temp', 'rh', 'co2eq', 'light']
+ 
+        for cols, title in zip([base_cols, full_cols], ('AI', 'AIE')):
+            df = X[cols].copy()
+            pred = str('y_hat_' + title)
+            df[pred] = 0 
+            df.loc[df.max(axis=1) > 0.5, pred] = 1
+            y_hat = df[pred].to_numpy()
+            _, _, blm = get_model_metrics(y_true=y, y_hat=y_hat)
+            self.metrics.update({title+' F1 neg': blm['F1 neg'], title+' F1': blm['F1'], title + ' Acc': blm['Accuracy']})
+
         
     def test_with_predictions(self, logit_clf, X, hr_lag=8):
         """Run data through classifier and push predictions forward as lag values
@@ -190,6 +222,12 @@ class TestModel(ModelBasics):
         tnr = tn/(tn+fp) if tn+fp > 0 else 0.0
         fnr = fn/(tp+fn) if tp+fn > 0 else 0.0
         logging.info(f'tnr: {tnr:.3} fpr:{fpr:.3} fnr:{fnr:.3}, tpr:{tpr:.3}')
+
+
+
+
+
+
 
 
 
