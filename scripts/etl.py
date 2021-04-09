@@ -37,12 +37,8 @@ class ETL(ModelBasics):
     """
 
     def __init__(self, hub, H_num, fill_type='zeros', data_type='train and test', log_flag=True):
-        # print('hub', hub)
-        
         self.hub = hub
         self.H_num = H_num
-        # self.H_num = hub[:2]
-        # self.hub = hub
         self.fill_type = fill_type
         self.get_directories()
         self.configs = None
@@ -50,8 +46,6 @@ class ETL(ModelBasics):
         self.train, self.test = None, None
         self.log_flag = log_flag
         self.format_logs(log_type='ETL', home=self.H_num)
-        
-        # self.load_data(data_type=data_type)
         self.get_data(data_type=data_type)
 
 
@@ -82,23 +76,11 @@ class ETL(ModelBasics):
                 self.write_data()
 
 
-
-
-
     def load_data(self, data_type):
         """Sets values of self.train and/or self.test by reading in or create new.
 
         Returns: Nothing
         """
-        # dt1 = data_type.split(' ')[0]
-        # check_name = os.path.join(self.data_dir, self.H_num, f'{dt1}_{self.hub}_{self.fill_type}.csv')
-        # # print(check_name)
-        # # sys.exit()
-        # data_exists = os.path.exists(check_name)
-
-        # assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
-
-        # if data_exists:
 
         if data_type == 'train':
             self.train = self.read_csvs(data_type)
@@ -107,12 +89,6 @@ class ETL(ModelBasics):
         else:
             self.train = self.read_csvs('train')
             self.test = self.read_csvs('test')
-
-        # else:
-        #     print(f'\t>>> Data fill type {self.fill_type} for {self.hub} does not exist. Creating new files...')
-        #     df = self.create_new()
-        #     self.train, self.test = self.get_train_test(df)
-        #     self.write_data()
 
 
     def read_csvs(self, data_type):
@@ -145,9 +121,11 @@ class ETL(ModelBasics):
 
         Returns: pandas df (with all days)
         """ 
+
         print('Creating new datasets...')
         config_file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
         self.configs = self.read_config(config_files=config_file_list)
+        print(f'hubs to use: {self.configs["hubs"]}')
         self.days = self.get_days(self.configs['start_end'])
 
         data_path = os.path.join(self.raw_data, self.H_num, f'{self.hub}_prob.csv')
@@ -300,23 +278,25 @@ class ETL(ModelBasics):
     def combine_hubs(self):
         """Write function to take in raw inferences for all hubs specfied in config file.
         """
+        hubs_to_use = self.config['hubs']
+        print(hubs_to_use)
         pass
 
 
-# if __name__ == '__main__':
-    
-#     parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
-#     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
-#     parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
-#     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
-#     parser.add_argument('-hub', '--hub', default='H1RS4', type=str, help='Which hub to use')
-#     args = parser.parse_args()
 
-#     Data = ETL(
-#             H_num=args.home,
-#             hub=args.hub,
-#             data_type=args.data_type,
-#             fill_type=args.fill_type,
-#             # hub=args.hub,
-#             log_flag=False
-#             )
+if __name__ == '__main__':
+    
+    parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
+    parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
+    parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
+    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
+    parser.add_argument('-hub', '--hub', default='H1RS4', type=str, help='Which hub to use')
+    args = parser.parse_args()
+
+    Data = ETL(
+            H_num=args.home,
+            hub=args.hub,
+            data_type=args.data_type,
+            fill_type=args.fill_type,
+            log_flag=False
+            )

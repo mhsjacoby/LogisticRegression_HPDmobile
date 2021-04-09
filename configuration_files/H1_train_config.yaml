@@ -7,3 +7,4 @@ max_iter: 5000
 # class_weight: balanced
 Cs: 30
 # scoring: balanced_accuracy
+# Cs: [0.1]
