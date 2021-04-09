@@ -113,25 +113,25 @@ class ModelBasics():
         return config
 
 
-    def format_logs(self, log_type, home):
-        """Creates log object and set logging parameters and format
+    # def format_logs(self, log_type, home):
+    #     """Creates log object and set logging parameters and format
 
-        Returns: log object
-        """
-        os.makedirs(self.log_save_dir, exist_ok=True)
+    #     Returns: log object
+    #     """
+    #     os.makedirs(self.log_save_dir, exist_ok=True)
 
-        logging.basicConfig(
-            filename=os.path.join(self.log_save_dir, f'{home}.log'),
-            level=logging.INFO,
-            format='%(message)s',
-            datefmt='%Y-%m-%d',
-            )
+    #     logging.basicConfig(
+    #         filename=os.path.join(self.log_save_dir, f'{home}.log'),
+    #         level=logging.INFO,
+    #         format='%(message)s',
+    #         datefmt='%Y-%m-%d',
+    #         )
 
-        if not self.log_flag:
-            logging.info(f'\n\n\t#### NEW RUN with {log_type} ####\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
-            self.log_flag = True
-        else:
-            logging.info(f'\n## {log_type} ##')
+    #     if not self.log_flag:
+    #         logging.info(f'\n\n\t#### NEW RUN with {log_type} ####\n{date.today()} {datetime.now().strftime("%H:%M:%S")}')
+    #         self.log_flag = True
+    #     else:
+    #         logging.info(f'\n## {log_type} ##')
 
 
 

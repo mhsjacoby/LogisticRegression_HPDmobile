@@ -16,7 +16,7 @@ import os
 import sys
 import csv
 import argparse
-import logging
+# import logging
 import numpy as np
 import pandas as pd
 from glob import glob
@@ -36,17 +36,28 @@ class ETL(ModelBasics):
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, hub, H_num, fill_type='zeros', data_type='train and test', log_flag=True):
-        self.hub = hub
+    def __init__(self, hub, H_num, fill_type='zeros', data_type='train and test'):
+        # self.hub = hub
+        self.hubs = self.get_hubs(hub)
         self.H_num = H_num
         self.fill_type = fill_type
         self.get_directories()
         self.configs = None
         self.days = []
         self.train, self.test = None, None
-        self.log_flag = log_flag
-        self.format_logs(log_type='ETL', home=self.H_num)
         self.get_data(data_type=data_type)
+
+
+    def get_hubs(self, hub):
+
+        if len(hub) > 0:
+            return [hub]
+        else:
+            color = self.configs['H_system'][0].upper()
+            hubs_to_use = []
+            for num in self.configs['hubs']:
+                hubs_to_use.append(f'{color}S{num}')
+            return hubs_to_use
 
 
     def get_data(self, data_type, make_new=True):
@@ -97,15 +108,12 @@ class ETL(ModelBasics):
         Returns: requested data file as pandas df
         """
         data_files = glob(os.path.join(self.data_dir, self.H_num, f'{data_type}_{self.hub}_{self.fill_type}.csv'))
-        # print(os.path.join(self.data_dir, self.home, f'{data_type}_{self.home}_{self.fill_type}.csv'))
-        # sys.exit()       
+ 
         if len(data_files) == 0:
             print(f'\t!!! No {data_type} files for {self.hub}. Exiting program.')
             sys.exit()
 
         data_path = data_files[0]
-
-        logging.info(f'Loading data file {os.path.basename(data_path)}')             
         print(f'\t>>> Loading data file {os.path.basename(data_path)}...')
 
         data_type_df = pd.read_csv(data_path, index_col='timestamp')
@@ -125,10 +133,9 @@ class ETL(ModelBasics):
         print('Creating new datasets...')
         config_file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
         self.configs = self.read_config(config_files=config_file_list)
-        print(f'hubs to use: {self.configs["hubs"]}')
         self.days = self.get_days(self.configs['start_end'])
 
-        data_path = os.path.join(self.raw_data, self.H_num, f'{self.hub}_prob.csv')
+        data_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{self.hub}_prob.csv')
         df = self.read_infs(data_path=data_path)
         return df
 
@@ -157,7 +164,6 @@ class ETL(ModelBasics):
 
         Returns: pandas df
         """
-        logging.info(f'Reading inferences from {os.path.basename(data_path)}')
 
         df = pd.read_csv(data_path, index_col="timestamp")
         df.index = pd.to_datetime(df.index)
@@ -197,7 +203,6 @@ class ETL(ModelBasics):
         """
         ts = int(60/min_inc)
         occ_series = df['occupied']
-        logging.info(f'Creating data with a lag of {lag_hours} hours')
 
         for i in range(1, lag_hours+1):
             lag_name = f'lag{i}_occupied'
@@ -221,8 +226,6 @@ class ETL(ModelBasics):
         train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])
         test_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days])
 
-        logging.info(f'Training: {len(train_days)} days from {train_days[0]} to {train_days[-1]}')
-        logging.info(f'Testing: {len(test_days)} days from {test_days[0]} to {test_days[-1]}')
         print('Train days:', len(train_days))
         print('Test days:', len(test_days))
         
@@ -246,7 +249,6 @@ class ETL(ModelBasics):
             days = [d.strftime('%Y-%m-%d') for d in pd_days]
             all_days.extend(days)
 
-        logging.info(f'{len(all_days)} days from {len(start_end)} continuous period(s)')
         return sorted(all_days)
 
 
@@ -258,7 +260,6 @@ class ETL(ModelBasics):
         os.makedirs(os.path.join(self.data_dir, self.H_num), exist_ok=True)   
         train_fname = os.path.join(self.data_dir, self.H_num, f'train_{self.hub}_{self.fill_type}.csv')
         test_fname = os.path.join(self.data_dir, self.H_num, f'test_{self.hub}_{self.fill_type}.csv')
-        logging.info(f'Writing data to {os.path.basename(train_fname)} and {os.path.basename(test_fname)}')
 
         self.train.to_csv(train_fname, index_label='timestamp')
         self.test.to_csv(test_fname, index_label='timestamp')
@@ -273,14 +274,16 @@ class ETL(ModelBasics):
         X = df[df.columns.difference(['occupied'], sort=False)]
         X = X.drop(columns = ['day'])
         return X, y
-        
+    
+
+
+
 
     def combine_hubs(self):
         """Write function to take in raw inferences for all hubs specfied in config file.
         """
-        hubs_to_use = self.config['hubs']
-        print(hubs_to_use)
-        pass
+        
+        return 
 
 
 
@@ -290,7 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
-    parser.add_argument('-hub', '--hub', default='H1RS4', type=str, help='Which hub to use')
+    parser.add_argument('-hub', '--hub', default='', type=str, help='Which hub to use')
     args = parser.parse_args()
 
     Data = ETL(
@@ -298,5 +301,4 @@ if __name__ == '__main__':
             hub=args.hub,
             data_type=args.data_type,
             fill_type=args.fill_type,
-            log_flag=False
             )
