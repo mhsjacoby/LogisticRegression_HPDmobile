@@ -38,7 +38,7 @@ class ETL(ModelBasics):
 
     def __init__(self, hub, H_num, fill_type='zeros', data_type='train and test'):
         # self.hub = hub
-        self.hubs = self.get_hubs(hub)
+
         self.H_num = H_num
         self.fill_type = fill_type
         self.get_directories()
@@ -293,7 +293,7 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
-    parser.add_argument('-hub', '--hub', default='', type=str, help='Which hub to use')
+    parser.add_argument('-hub', '--hub', default='', type=str, help='which hub to use? (leave blank if using config file to specify)')
     args = parser.parse_args()
 
     Data = ETL(
