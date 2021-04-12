@@ -80,37 +80,37 @@ class ModelBasics():
     getting storage directory locations, and getting list of days.
     """ 
 
-    def get_directories(self):
-        """Gets names of all directories, relative to the current script.
+    # def get_directories(self):
+    #     """Gets names of all directories, relative to the current script.
 
-        Returns: nothing
-        """
-        parent_dir = os.path.dirname(os.getcwd())
+    #     Returns: nothing
+    #     """
+    #     parent_dir = os.path.dirname(os.getcwd())
 
-        self.config_dir = os.path.join(parent_dir, 'configuration_files')
-        self.log_save_dir = os.path.join(parent_dir, 'logs')
-        self.data_dir = os.path.join(parent_dir, 'data')
-        self.models_dir = os.path.join(parent_dir, 'models')
-        self.raw_data = os.path.join(parent_dir, 'raw_data_files')
-        self.results_csvs = os.path.join(parent_dir, 'results_csvs')
+    #     self.config_dir = os.path.join(parent_dir, 'configuration_files')
+    #     self.log_save_dir = os.path.join(parent_dir, 'logs')
+    #     self.data_dir = os.path.join(parent_dir, 'data')
+    #     self.models_dir = os.path.join(parent_dir, 'models')
+    #     self.raw_data = os.path.join(parent_dir, 'raw_data_files')
+    #     self.results_csvs = os.path.join(parent_dir, 'results_csvs')
 
 
-    def read_config(self, config_files, config_type='ETL'):
-        """Reads in the configuration file (*.yaml).
+    # def read_config(self, config_files, config_type='ETL'):
+    #     """Reads in the configuration file (*.yaml).
         
-        Returns: configuration parameters
-        """
-        if len(config_files) == 0:
-            print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
-            sys.exit()
+    #     Returns: configuration parameters
+    #     """
+    #     if len(config_files) == 0:
+    #         print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
+    #         sys.exit()
 
-        config_file_path = config_files[0]
-        logging.info(f'{len(config_files)} {config_type} configuration file(s).\
-                    \nUsing: {os.path.basename(config_file_path)}')
+    #     config_file_path = config_files[0]
+    #     logging.info(f'{len(config_files)} {config_type} configuration file(s).\
+    #                 \nUsing: {os.path.basename(config_file_path)}')
 
-        with open(config_file_path) as f:
-            config = yaml.safe_load(f)
-        return config
+    #     with open(config_file_path) as f:
+    #         config = yaml.safe_load(f)
+    #     return config
 
 
     # def format_logs(self, log_type, home):

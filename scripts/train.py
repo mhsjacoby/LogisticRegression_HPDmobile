@@ -21,7 +21,7 @@ from data_basics import ModelBasics, get_model_metrics, get_predictions_wGT
 from etl import ETL 
 
 
-class TrainModel(ModelBasics):
+class TrainModel(ETL):
     """Trains a logistic regression model.
 
     Uses ETL to load the training data.
