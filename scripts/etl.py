@@ -1,7 +1,7 @@
 """
 etl.py
 Author: Maggie Jacoby
-Last update: 2021-02-22
+Last update: 2021-04-12
 
 Extract-Transform-Load class for logistic regression models 
 Uses DataBasics as parent class
@@ -16,16 +16,13 @@ import os
 import sys
 import csv
 import argparse
-# import logging
 import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
 
-from data_basics import ModelBasics
 
-
-class ETL(ModelBasics):
+class ETL():
     """All functions to extract, transform, and load the train and test data sets.
 
     Upon initialization, this class gets the full names for all storage locations.     
@@ -36,107 +33,123 @@ class ETL(ModelBasics):
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, hub, H_num, fill_type='zeros', data_type='train and test'):
-        # self.hub = hub
-
+    def __init__(self, hub, H_num, fill_type='zeros'):
         self.H_num = H_num
         self.fill_type = fill_type
         self.get_directories()
-        self.configs = None
-        self.days = []
-        self.train, self.test = None, None
-        self.get_data(data_type=data_type)
+        self.configs = self.read_config(config_type='ETL')
+        self.hubs_to_use = self.get_hubs(hub)
+        self.days = self.get_days()
+        self.df = self.get_data()
+        self.train, self.test = self.get_train_test(self.df)
+
+
+    def get_directories(self):
+        """Sets names of all directories, relative to the current script location.
+
+        Returns: nothing
+        """
+        parent_dir = os.path.dirname(os.getcwd())
+
+        self.config_dir = os.path.join(parent_dir, 'configuration_files')
+        self.log_save_dir = os.path.join(parent_dir, 'logs')
+        self.data_dir = os.path.join(parent_dir, 'data')
+        self.models_dir = os.path.join(parent_dir, 'models')
+        self.raw_data = os.path.join(parent_dir, 'raw_data_files')
+        self.results_csvs = os.path.join(parent_dir, 'results_csvs')
+
+
+    def read_config(self, config_type):
+        """Reads in the configuration file (*.yaml).
+        
+        Returns: configuration parameters
+        """
+        config_files = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type.lower()}_config.yaml'))
+
+        if len(config_files) == 0:
+            print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
+            sys.exit()
+
+        config_file_path = config_files[0]
+        print(f'{len(config_files)} {config_type} configuration file(s) for {self.H_num}.\
+            \nUsing: {os.path.basename(config_file_path)}')
+
+        with open(config_file_path) as f:
+            config = yaml.safe_load(f)
+
+        return config
 
 
     def get_hubs(self, hub):
+        """Returns a list of the hubs to use.
+        If a hub is initially specified, returns just that as a list,
+        otherwise looks in configuration file and creates a list
+        """
 
         if len(hub) > 0:
-            return [hub]
+            hubs_to_use = [hub]
+
         else:
             color = self.configs['H_system'][0].upper()
             hubs_to_use = []
             for num in self.configs['hubs']:
                 hubs_to_use.append(f'{color}S{num}')
-            return hubs_to_use
+
+        print(f'Using hubs: {hubs_to_use}')
+
+        return hubs_to_use
 
 
-    def get_data(self, data_type, make_new=True):
-        """Creates new data sets or loads existing
+    def get_days(self):
+        """Gets all days to use for the training or testing.
 
-        If new data is requested it makes new without writing the results
-        otherwise it checks to see if the data type specified exists, then loads or creates new
-
-        Returns: Nothing
+        If multiple lists of start/end exist, it joins them together. 
+        Returns: a list of all days between start/end in config file.
         """
+        all_days = []
 
-        if make_new:
-            df = self.create_new()
-            self.train, self.test = self.get_train_test(df)
+        for st in self.configs['start_end']:
+            start, end = st[0], st[1]
+            pd_days = pd.date_range(start=start, end=end).tolist()
+            days = [d.strftime('%Y-%m-%d') for d in pd_days]
+            all_days.extend(days)
 
-        else:
-            dt1 = data_type.split(' ')[0]
-            assert dt1 == 'train' or dt1 == 'test', 'Unrecognized data type'
-            check_name = os.path.join(self.data_dir, self.H_num, f'{dt1}_{self.hub}_{self.fill_type}.csv')
-            data_exists = os.path.exists(check_name)
-
-            if data_exists:
-                self.load_data(data_type)
-            else:
-                df = self.create_new()
-                self.train, self.test = self.get_train_test(df)
-                self.write_data()
+        return sorted(all_days)
 
 
-    def load_data(self, data_type):
-        """Sets values of self.train and/or self.test by reading in or create new.
-
-        Returns: Nothing
-        """
-
-        if data_type == 'train':
-            self.train = self.read_csvs(data_type)
-        elif data_type == 'test':
-            self.test = self.read_csvs(data_type)
-        else:
-            self.train = self.read_csvs('train')
-            self.test = self.read_csvs('test')
-
-
-    def read_csvs(self, data_type):
-        """Reads in previously created train or test data.
-
-        Returns: requested data file as pandas df
-        """
-        data_files = glob(os.path.join(self.data_dir, self.H_num, f'{data_type}_{self.hub}_{self.fill_type}.csv'))
- 
-        if len(data_files) == 0:
-            print(f'\t!!! No {data_type} files for {self.hub}. Exiting program.')
-            sys.exit()
-
-        data_path = data_files[0]
-        print(f'\t>>> Loading data file {os.path.basename(data_path)}...')
-
-        data_type_df = pd.read_csv(data_path, index_col='timestamp')
-        return data_type_df
-
-
-    def create_new(self):
-        """Sets up the conditions to read in raw inferences.
-
-        This is only called if no test/train csv data exists yet.
-        It reads configuration files and creates the list of days to use.
-        Creates new train/test data through self.read_infs.
+    def get_data(self):
+        """Reads raw inferences for all hubs, creates dfs (including lags) and combines hubs.
 
         Returns: pandas df (with all days)
         """ 
 
-        print('Creating new datasets...')
-        config_file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_etl_*.yaml'))
-        self.configs = self.read_config(config_files=config_file_list)
-        self.days = self.get_days(self.configs['start_end'])
+        print(f'Creating new datasets for {self.H_num}...')
+        all_hub_dfs = []
 
-        data_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{self.hub}_prob.csv')
-        df = self.read_infs(data_path=data_path)
+        for hub in self.hubs_to_use():
+            hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}_prob.csv')
+            hub_df = self.read_infs(data_path=hub_path)
+            all_hub_dfs.append(hub_df)
+
+        df = self.combine_hubs(df_list=all_hub_dfs)
+        df = self.create_HOD(df)
+        df = self.create_lags(df)
+        return df
+
+
+    def read_infs(self, data_path, resample_rate='5min', thresh=0.5):
+
+        """ Reads in raw inferences from hub level CSV.
+        This function fills or drops nans, resamples data, and calls create_lag function.
+
+        Returns: pandas df
+        """
+        df = pd.read_csv(data_path, index_col='timestamp')
+        df.index = pd.to_datetime(df.index)
+        df = df.resample(rule=resample_rate).mean()
+        df['occupied'] = df['occupied'].apply(lambda x: 1 if (x >= thresh) else 0)
+
+        df = self.fill_df(df=df, fill_type=self.fill_type)
         return df
 
 
@@ -152,61 +165,6 @@ class ETL(ModelBasics):
         else:
             print(f'\t!!! Unrecognized fill type {fill_type}. Exiting program.')
             sys.exit()
-        return df
-
-
-    def read_infs(self, data_path, resample_rate='5min', thresh=0.5):
-
-        """ Reads in raw inferences from hub level CSV.
-
-        This is called from self.crete_new_datafiles when no train/test data exist.
-        This function fills or drops nans, resamples data, and calls create_lag function.
-
-        Returns: pandas df
-        """
-
-        df = pd.read_csv(data_path, index_col="timestamp")
-        df.index = pd.to_datetime(df.index)
-        df = df.resample(rule=resample_rate).mean()
-        df['occupied'] = df['occupied'].apply(lambda x: 1 if (x >= thresh) else 0)
-
-        df = self.fill_df(df=df, fill_type=self.fill_type)
-        df = self.create_HOD(df)
-        df = self.create_lags(df)
-        return df
-
-
-    def create_HOD(self, df):
-
-        df['date'] = pd.to_datetime(df.index) 
-        df.insert(loc=0, column='day', value=df['date'].dt.date)
-        df.insert(loc=1, column='hour', value=df['date'].dt.hour+df['date'].dt.minute/60)
-        df.insert(loc=2, column='DOW', value=df['date'].dt.weekday)
-        df['weekday'] = 0
-        df.loc[df.DOW > 4, 'weekday'] = 1
-
-        df['hr_sin'] = np.sin(df.hour*(2.*np.pi/24))
-        df['hr_cos'] = np.cos(df.hour*(2.*np.pi/24))
-
-        df.drop(columns=['date', 'DOW', 'hour'], inplace=True)
-
-        return df
-
-
-    def create_lags(self, df, lag_hours=8, min_inc=5):
-        """Creates lagged occupancy variable
-
-        Takes in a df and makes lags up to (and including) lag_hours.
-        The df is in 5 minute increments (by default), so lag is 12*hour.
-        
-        Returns: lagged df
-        """
-        ts = int(60/min_inc)
-        occ_series = df['occupied']
-
-        for i in range(1, lag_hours+1):
-            lag_name = f'lag{i}_occupied'
-            df[lag_name] = occ_series.shift(periods=ts*i)
         return df
 
 
@@ -235,38 +193,8 @@ class ETL(ModelBasics):
         return train_df, test_df
 
 
-    def get_days(self, start_end):
-        """Gets all days to use for the training or testing.
-
-        If multiple lists of start/end exist, it joins them together. 
-        Returns: a list of all days between start/end in config file.
-        """
-        all_days = []
-
-        for st in start_end:
-            start, end = st[0], st[1]
-            pd_days = pd.date_range(start=start, end=end).tolist()
-            days = [d.strftime('%Y-%m-%d') for d in pd_days]
-            all_days.extend(days)
-
-        return sorted(all_days)
-
-
-    def write_data(self):
-        """Writes csvs with the newly created train/test data.
-
-        returns: nothing
-        """
-        os.makedirs(os.path.join(self.data_dir, self.H_num), exist_ok=True)   
-        train_fname = os.path.join(self.data_dir, self.H_num, f'train_{self.hub}_{self.fill_type}.csv')
-        test_fname = os.path.join(self.data_dir, self.H_num, f'test_{self.hub}_{self.fill_type}.csv')
-
-        self.train.to_csv(train_fname, index_label='timestamp')
-        self.test.to_csv(test_fname, index_label='timestamp')
-
-
     def split_xy(self, df):
-        """Split dataset to get predictors (X) and ground truth (y)
+        """Split dataset to get predictors (X) and occupancy (y)
 
         Returns: X: pandas df, and y: pandas Series
         """ 
@@ -274,31 +202,72 @@ class ETL(ModelBasics):
         X = df[df.columns.difference(['occupied'], sort=False)]
         X = X.drop(columns = ['day'])
         return X, y
-    
 
 
+    def create_HOD(self, df):
+        """Creates variables for hour of day (cyclic) and weekday/weekend (binary).
 
-
-    def combine_hubs(self):
-        """Write function to take in raw inferences for all hubs specfied in config file.
+        Returns: df of same length, with 4 new variables (day, hr_sin, hr_cos, weekday)
         """
-        
-        return 
 
+        df['date'] = pd.to_datetime(df.index) 
+        df.insert(loc=0, column='day', value=df['date'].dt.date)
+        df.insert(loc=1, column='hour', value=df['date'].dt.hour+df['date'].dt.minute/60)
+        df.insert(loc=2, column='DOW', value=df['date'].dt.weekday)
+        df['weekday'] = 0
+        df.loc[df.DOW > 4, 'weekday'] = 1
+
+        df['hr_sin'] = np.sin(df.hour*(2.*np.pi/24))
+        df['hr_cos'] = np.cos(df.hour*(2.*np.pi/24))
+
+        df.drop(columns=['date', 'DOW', 'hour'], inplace=True)
+        return df
+
+
+    def create_lags(self, df, lag_hours=8, min_inc=5):
+        """Creates lagged occupancy variable
+
+        Takes in a df and makes lags up to (and including) lag_hours.
+        The df is in 5 minute increments (by default), so lag is 12*hour.
+        
+        Returns: lagged df
+        """
+        ts = int(60/min_inc)
+        occ_series = df['occupied']
+
+        for i in range(1, lag_hours+1):
+            lag_name = f'lag{i}_occupied'
+            df[lag_name] = occ_series.shift(periods=ts*i)
+        return df
+
+
+    def get_rolling_avg(self, df):
+        """Write function that gets lag as a rolling average, not discrete.
+
+        Returns: df with rolling averages
+        """
+        pass
+
+
+    def combine_hubs(self, df_list):
+        """Write function to combine multiple hub dfs into one. 
+        Takes in list of dfs
+
+        Returns: df with all hubs combined
+        """        
+        pass
 
 
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
-    parser.add_argument('-data_type', '--data_type', default='train and test', type=str, help='Data type to load (if only one)')
-    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
     parser.add_argument('-hub', '--hub', default='', type=str, help='which hub to use? (leave blank if using config file to specify)')
+    parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
     args = parser.parse_args()
 
     Data = ETL(
             H_num=args.home,
             hub=args.hub,
-            data_type=args.data_type,
             fill_type=args.fill_type,
             )
