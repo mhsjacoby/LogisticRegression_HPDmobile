@@ -15,6 +15,7 @@ Outputs: train/test split dataframes (self.train and self.test)
 import os
 import sys
 import csv
+import yaml
 import argparse
 import numpy as np
 import pandas as pd
@@ -65,7 +66,7 @@ class ETL():
         Returns: configuration parameters
         """
         config_files = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type.lower()}_config.yaml'))
-
+        print(glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type.lower()}_config.yaml')))
         if len(config_files) == 0:
             print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
             sys.exit()
@@ -126,12 +127,16 @@ class ETL():
         print(f'Creating new datasets for {self.H_num}...')
         all_hub_dfs = []
 
-        for hub in self.hubs_to_use():
+        for hub in self.hubs_to_use:
+            print(hub)
             hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}_prob.csv')
+            print(hub_path)
             hub_df = self.read_infs(data_path=hub_path)
+            print(hub_df)
             all_hub_dfs.append(hub_df)
 
-        df = self.combine_hubs(df_list=all_hub_dfs)
+        df = all_hub_dfs[0] ###
+        # df = self.combine_hubs(df_list=all_hub_dfs)
         df = self.create_HOD(df)
         df = self.create_lags(df)
         return df
@@ -269,5 +274,5 @@ if __name__ == '__main__':
     Data = ETL(
             H_num=args.home,
             hub=args.hub,
-            fill_type=args.fill_type,
+            fill_type=args.fill_type
             )
