@@ -35,6 +35,14 @@ def get_predictions_wGT(logit_clf, X_df):
     return df
 
 
+def get_predictions_nonparametric():
+    """Create likilihood of occupancy, based only on past occupancy
+    """
+    pass
+
+
+
+
 def get_model_metrics(y_true, y_hat):
     """Stand-alone function to get metrics given a classifier.
 
@@ -69,6 +77,15 @@ def get_model_metrics(y_true, y_hat):
     return conf_mat, results_metrics, metrics
 
 
+def additional_metrics(conf_mat):
 
+    tn, fp, fn, tp = conf_mat.ravel()
+    print(f'\ntn: {tn} fp:{fp} fn:{fn}, tp:{tp}')
 
+    tpr = tp/(tp+fn) if tp+fn > 0 else 0.0
+    fpr = fp/(tn+fp) if tn+fp > 0 else 0.0
 
+    tnr = tn/(tn+fp) if tn+fp > 0 else 0.0
+    fnr = fn/(tp+fn) if tp+fn > 0 else 0.0
+
+    return {'tnr': f'{tnr:.3}', 'fpr': f'{fpr:.3}', 'fnr': f'{fnr:.3}', 'tpr': f'{tpr:.3}'}
