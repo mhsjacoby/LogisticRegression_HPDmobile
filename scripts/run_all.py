@@ -6,25 +6,17 @@ Last update: 2021-04-13
 
 
 import os
-import sys
-import csv
-import yaml
-import pickle
 import logging
 import argparse
-import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
-from sklearn.metrics import confusion_matrix
 
-import model_metrics as my_metrics
-import prediction_functions as pred_fncs
-from etl import ETL 
 from train import TrainModel
 from test import TestModel
 
 local_save_path = '/Users/maggie/Desktop'
+
 
 
 H1 = TrainModel(
@@ -39,7 +31,8 @@ H2 = TrainModel(
 
 homes = [H1, H2]
 
-all_metrics, coeff_list = [], {}
+all_metrics = []
+coeff_list = {}
 
 for train in homes:
     coeff_list[train.H_num] = train.coeffs
