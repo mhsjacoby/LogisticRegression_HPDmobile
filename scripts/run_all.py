@@ -24,21 +24,7 @@ from etl import ETL
 from train import TrainModel
 from test import TestModel
 
-
-
 local_save_path = '/Users/maggie/Desktop'
-
-
-    
-# parser = argparse.ArgumentParser(description='Train model')
-# parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
-# parser.add_argument('-hub', '--hub', default='', type=str, help='which hub to use? (leave blank if using config file to specify)')
-# parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
-# parser.add_argument('-cv', '--cv', default=False, action='store_true', help='Perform cross-validation?')
-# args = parser.parse_args()
-
-# if not args.cv:
-#     args.cv = False
 
 
 H1 = TrainModel(
@@ -57,7 +43,6 @@ all_metrics, coeff_list = [], {}
 
 for train in homes:
     coeff_list[train.H_num] = train.coeffs
-
 
     for test in homes:
         print(f'Model trained on {train.H_num}, tested on data from {test.H_num}')
