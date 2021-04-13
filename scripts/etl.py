@@ -34,10 +34,22 @@ class ETL():
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, H_num, hub, fill_type='zeros'):
+    def __init__(self, H_num, fill_type='zeros'):
+        # self.hub_input = hub
         self.H_num = H_num
         self.fill_type = fill_type
         self.get_directories()
+
+
+        # self.home_configs = self.read_config(config_type='etl')
+        # self.hubs_to_use = self.get_hubs(hub)
+        # self.days = self.get_days()
+
+        # df = self.get_data()
+        # self.train, self.test = self.get_train_test(df)
+
+
+    def generate_dataset(self, hub):
         self.home_configs = self.read_config(config_type='etl')
         self.hubs_to_use = self.get_hubs(hub)
         self.days = self.get_days()
@@ -279,6 +291,7 @@ if __name__ == '__main__':
 
     Data = ETL(
             H_num=args.home,
-            hub=args.hub,
+            # hub=args.hub,
             fill_type=args.fill_type
             )
+    Data.generate_dataset(hub=args.hub)
