@@ -18,6 +18,7 @@ from datetime import datetime, date
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 # from model_metrics import get_model_metrics, get_predictions_wGT
 import model_metrics as my_metrics
+import prediction_functions as predictions
 from etl import ETL 
 
 
@@ -28,21 +29,23 @@ class TrainModel(ETL):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, H_num, hub, train_data=None, fill_type='zeros', cv=False, save_outputs=False):
+    def __init__(self, H_num, hub, train_data=None, fill_type='zeros', cv=False, save_model=False):
 
         super().__init__(H_num=H_num, fill_type=fill_type)
 
         self.cv = cv
         self.configs = self.read_config(config_type='train', config_file='train_config')
 
-        if not train_data:
+        self.train = train_data
+        if self.train is None:
+            print('> no train data passed')
             super().generate_dataset(hub)
 
         self.X, self.y = self.split_xy(self.train)
         self.model = self.train_model()
         self.coeffs = self.format_coeffs(self.model)
 
-        self.yhat_df = my_metrics.get_predictions_wGT(logit_clf=self.model, X_df=self.X)
+        # self.yhat_df = predictions.test_with_GT(logit_clf=self.model, X_df=self.X)
 
 
 

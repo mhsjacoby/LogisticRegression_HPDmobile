@@ -50,12 +50,14 @@ class ETL():
 
 
     def generate_dataset(self, hub):
+        print('> generating from etl...')
         self.home_configs = self.read_config(config_type='etl')
         self.hubs_to_use = self.get_hubs(hub)
         self.days = self.get_days()
 
         df = self.get_data()
         self.train, self.test = self.get_train_test(df)
+        print(len(self.train))
 
 
     def get_directories(self):

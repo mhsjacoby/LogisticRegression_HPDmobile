@@ -4,20 +4,14 @@ Author: Maggie Jacoby
 Date: 2021-04-13
 """
 
-# import os
-# import sys
-# import csv
-# import yaml
-# import logging
-# import argparse
 import numpy as np
 import pandas as pd
-# from glob import glob
 from datetime import datetime, date
-from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score, matthews_corrcoef
+# from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score, matthews_corrcoef
+import model_metrics as my_metrics
 
 
-def baseline_OR(X, y, thresh=0.5):
+def baseline_OR(X, y, metrics, thresh=0.5):
     """Get baseline results to compare LR to
 
     Uses the previous OR gate and generate predictions
@@ -25,21 +19,30 @@ def baseline_OR(X, y, thresh=0.5):
     Returns: y_hat (predictions) and f1(rev) and accuracy
     """
     base_cols = ['audio', 'img']
-    full_cols =  base_cols + ['temp', 'rh', 'co2eq', 'light']
+    full_cols =  base_cols + ['temp', 'rh', 'light', 'co2eq']
 
     for cols, title in zip([base_cols, full_cols], ('AI', 'AIE')):
         df = X[cols].copy()
         pred = str('y_hat_' + title)
+        df['prob'] = df.max(axis=1)
         df[pred] = 0 
-        df.loc[df.max(axis=1) > thresh, pred] = 1
+        df.loc[df['prob'] > thresh, pred] = 1
+        np_probs = df['prob'].to_numpy()
         y_hat = df[pred].to_numpy()
-        a_, b_, blm = get_model_metrics(y_true=y, y_hat=y_hat)
+
+        _, blm = my_metrics.get_model_metrics(y_true=y, y_hat=y_hat)
+        metrics[title] = blm
+        # print(cm, blm)
         # self.metrics.update({title+' F1 neg': blm['F1 neg'], title+' F1': blm['F1'], title + ' Acc': blm['Accuracy']})
-        print('=== pred !!', pred)
-        print('=== a_ !!', a_)
-        print('=== b_ !!', b_)
-        print('=== blm !!', blm)
-        print('==========')
+
+        # results_df = pd.DataFrame(
+        #             data=np.transpose([np_probs, y_hat]), 
+        #             index=df.index,
+        #             columns=['Probability', 'Predictions']
+        #             )
+
+        # print('results', pred, results_df)
+    return metrics
 
 
 
@@ -47,22 +50,22 @@ def baseline_OR(X, y, thresh=0.5):
 
 
 
-def get_predictions_wGT(logit_clf, X_df):
+def test_with_GT(logit_clf, X_df):
     """Run data through classifier to get predictions given X and y using ground truth for lags
 
     Returns: probabilities (between 0,1) and predictions (0/1) as a df
     """
-    # print(X_df)
+
     X = X_df.to_numpy()
 
     probs = logit_clf.predict_proba(X)[:,1]
     preds = logit_clf.predict(X)
+
     df = pd.DataFrame(
                     data=np.transpose([probs, preds]), 
                     index=X_df.index,
                     columns=['Probability', 'Predictions']
                     )
-    # print(df)
     return df
 
 
@@ -73,15 +76,15 @@ def get_predictions_nonparametric():
 
 
 
-def test_with_predictions(logit_clf, X, hr_lag=8):
+def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
     """Run data through classifier and push predictions forward as lag values
 
     This is used instead of get_predictions_wGT.
     Returns: probabilities (between 0,1) and predictions (0/1) as a df
 
     """
-
-    lag_max = hr_lag*12
+    ts = int(60/min_inc)
+    lag_max = hr_lag*ts
 
     X_start = X.iloc[:lag_max]
     lag_cols=[c for c in X.columns if c.startswith('lag')]
@@ -101,7 +104,7 @@ def test_with_predictions(logit_clf, X, hr_lag=8):
 
         for j in range(1, hr_lag + 1):
             lag_col_name = f'lag{j}_occupied'
-            ind_to_set = idx_loc + j*12
+            ind_to_set = idx_loc + j*ts
             try:
                 preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
             except:
@@ -111,5 +114,6 @@ def test_with_predictions(logit_clf, X, hr_lag=8):
     y_hats = pd.DataFrame(ys).set_index(0)
     y_hats.index.name = 'timestamp'
     y_hats.columns = ['Probability', 'Predictions']
+    # print(y_hats)
 
     return y_hats
