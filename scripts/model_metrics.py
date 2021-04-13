@@ -22,7 +22,7 @@ def get_predictions_wGT(logit_clf, X_df):
 
     Returns: probabilities (between 0,1) and predictions (0/1) as a df
     """
-
+    # print(X_df)
     X = X_df.to_numpy()
 
     probs = logit_clf.predict_proba(X)[:,1]
@@ -32,6 +32,7 @@ def get_predictions_wGT(logit_clf, X_df):
                     index=X_df.index,
                     columns=['Probability', 'Predictions']
                     )
+    # print(df)
     return df
 
 

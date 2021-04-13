@@ -90,10 +90,12 @@ if __name__=='__main__':
     curr_fill = args.fill_type
     suffix = args.suffix
     color = args.system
-    hubs_used = [1,2,3,4,5] if not args.hubs else args.hubs
+    # hubs_used = [1,2,3,4,5] if not args.hubs else args.hubs
 
-    list_of_hubs = ['H1RS4', 'H2RS5']
+    # list_of_hubs = ['H1RS4', 'H2RS5']
     # list_of_hubs = [f'{train_home}{color}S{str(i)}' for i in hubs_used]
+    list_of_hubs = ['H1RS4', 'H1RS3']
+
 
 
     hub_results, coeff_list, coeff_cols = [], [], []

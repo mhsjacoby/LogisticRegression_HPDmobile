@@ -34,15 +34,16 @@ class ETL():
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, hub, H_num, fill_type='zeros'):
+    def __init__(self, H_num, hub, fill_type='zeros'):
         self.H_num = H_num
         self.fill_type = fill_type
         self.get_directories()
-        self.configs = self.read_config(config_type='ETL')
+        self.home_configs = self.read_config(config_type='etl')
         self.hubs_to_use = self.get_hubs(hub)
         self.days = self.get_days()
-        self.df = self.get_data()
-        self.train, self.test = self.get_train_test(self.df)
+
+        df = self.get_data()
+        self.train, self.test = self.get_train_test(df)
 
 
     def get_directories(self):
@@ -60,20 +61,25 @@ class ETL():
         self.results_csvs = os.path.join(parent_dir, 'results_csvs')
 
 
-    def read_config(self, config_type):
+    def read_config(self, config_type, config_file=None):
         """Reads in the configuration file (*.yaml).
         
         Returns: configuration parameters
         """
-        config_files = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type.lower()}_config.yaml'))
-        print(glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type.lower()}_config.yaml')))
-        if len(config_files) == 0:
-            print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
-            sys.exit()
+        if not config_file:
+            file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type}_config.yaml'))
 
-        config_file_path = config_files[0]
-        print(f'{len(config_files)} {config_type} configuration file(s) for {self.H_num}.\
-            \nUsing: {os.path.basename(config_file_path)}')
+            if len(file_list) == 0:
+                print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
+                sys.exit()
+
+            config_file_path = file_list[0]
+            print(f'{len(file_list)} {config_type} configuration file(s) found for {self.H_num}')
+
+        else:
+            config_file_path = os.path.join(self.config_dir, f'{config_file}.yaml')
+
+        print(f'Using: {os.path.basename(config_file_path)}')
 
         with open(config_file_path) as f:
             config = yaml.safe_load(f)
@@ -91,9 +97,9 @@ class ETL():
             hubs_to_use = [hub]
 
         else:
-            color = self.configs['H_system'][0].upper()
+            color = self.home_configs['H_system'][0].upper()
             hubs_to_use = []
-            for num in self.configs['hubs']:
+            for num in self.home_configs['hubs']:
                 hubs_to_use.append(f'{color}S{num}')
 
         print(f'Using hubs: {hubs_to_use}')
@@ -109,7 +115,7 @@ class ETL():
         """
         all_days = []
 
-        for st in self.configs['start_end']:
+        for st in self.home_configs['start_end']:
             start, end = st[0], st[1]
             pd_days = pd.date_range(start=start, end=end).tolist()
             days = [d.strftime('%Y-%m-%d') for d in pd_days]
@@ -128,11 +134,8 @@ class ETL():
         all_hub_dfs = []
 
         for hub in self.hubs_to_use:
-            print(hub)
             hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}_prob.csv')
-            print(hub_path)
             hub_df = self.read_infs(data_path=hub_path)
-            print(hub_df)
             all_hub_dfs.append(hub_df)
 
         df = all_hub_dfs[0] ###
@@ -206,6 +209,7 @@ class ETL():
         y = df['occupied']
         X = df[df.columns.difference(['occupied'], sort=False)]
         X = X.drop(columns = ['day'])
+        # print(len(X), len(y))
         return X, y
 
 
@@ -239,6 +243,8 @@ class ETL():
         """
         ts = int(60/min_inc)
         occ_series = df['occupied']
+
+        # occ_rolling_avg = 
 
         for i in range(1, lag_hours+1):
             lag_name = f'lag{i}_occupied'
