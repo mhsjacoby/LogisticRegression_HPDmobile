@@ -35,29 +35,18 @@ class ETL():
     """
 
     def __init__(self, H_num, fill_type='zeros'):
-        # self.hub_input = hub
         self.H_num = H_num
         self.fill_type = fill_type
         self.get_directories()
 
 
-        # self.home_configs = self.read_config(config_type='etl')
-        # self.hubs_to_use = self.get_hubs(hub)
-        # self.days = self.get_days()
-
-        # df = self.get_data()
-        # self.train, self.test = self.get_train_test(df)
-
-
-    def generate_dataset(self, hub):
-        print('> generating from etl...')
+    def generate_dataset(self, hub=''):
         self.home_configs = self.read_config(config_type='etl')
         self.hubs_to_use = self.get_hubs(hub)
         self.days = self.get_days()
 
         df = self.get_data()
         self.train, self.test = self.get_train_test(df)
-        print(len(self.train))
 
 
     def get_directories(self):
@@ -223,7 +212,6 @@ class ETL():
         y = df['occupied']
         X = df[df.columns.difference(['occupied'], sort=False)]
         X = X.drop(columns = ['day'])
-        # print(len(X), len(y))
         return X, y
 
 

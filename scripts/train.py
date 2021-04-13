@@ -29,7 +29,7 @@ class TrainModel(ETL):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, H_num, hub, train_data=None, fill_type='zeros', cv=False, save_model=False):
+    def __init__(self, H_num, hub='', train_data=None, fill_type='zeros', cv=False, save_model=False):
 
         super().__init__(H_num=H_num, fill_type=fill_type)
 

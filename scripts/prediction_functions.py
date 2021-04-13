@@ -7,7 +7,6 @@ Date: 2021-04-13
 import numpy as np
 import pandas as pd
 from datetime import datetime, date
-# from sklearn.metrics import r2_score, mean_squared_error, confusion_matrix, f1_score, accuracy_score, matthews_corrcoef
 import model_metrics as my_metrics
 
 
@@ -21,33 +20,15 @@ def baseline_OR(X, y, metrics, thresh=0.5):
     base_cols = ['audio', 'img']
     full_cols =  base_cols + ['temp', 'rh', 'light', 'co2eq']
 
-    for cols, title in zip([base_cols, full_cols], ('AI', 'AIE')):
+    for cols, title in zip([base_cols, full_cols], ('OR (ai)', 'OR (aie)')):
         df = X[cols].copy()
-        pred = str('y_hat_' + title)
         df['prob'] = df.max(axis=1)
-        df[pred] = 0 
-        df.loc[df['prob'] > thresh, pred] = 1
-        np_probs = df['prob'].to_numpy()
-        y_hat = df[pred].to_numpy()
-
+        df['pred'] = 0 
+        df.loc[df['prob'] > thresh, 'pred'] = 1
+        y_hat = df['pred'].to_numpy()
         _, blm = my_metrics.get_model_metrics(y_true=y, y_hat=y_hat)
         metrics[title] = blm
-        # print(cm, blm)
-        # self.metrics.update({title+' F1 neg': blm['F1 neg'], title+' F1': blm['F1'], title + ' Acc': blm['Accuracy']})
-
-        # results_df = pd.DataFrame(
-        #             data=np.transpose([np_probs, y_hat]), 
-        #             index=df.index,
-        #             columns=['Probability', 'Predictions']
-        #             )
-
-        # print('results', pred, results_df)
     return metrics
-
-
-
-
-
 
 
 def test_with_GT(logit_clf, X_df):
@@ -114,6 +95,4 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
     y_hats = pd.DataFrame(ys).set_index(0)
     y_hats.index.name = 'timestamp'
     y_hats.columns = ['Probability', 'Predictions']
-    # print(y_hats)
-
     return y_hats
