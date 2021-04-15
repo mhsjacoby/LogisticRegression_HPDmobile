@@ -1,13 +1,12 @@
 """
 train.py
 Authors: Maggie Jacoby and Jasmine Garland
-Last update: 2021-04-12
+Last update: 2021-04-15
 """
 
 import os
 import sys
 import csv
-import yaml
 import pickle
 import logging
 import argparse
@@ -16,9 +15,7 @@ import pandas as pd
 from glob import glob
 from datetime import datetime, date
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
-# from model_metrics import get_model_metrics, get_predictions_wGT
-import model_metrics as my_metrics
-import prediction_functions as predictions
+
 from etl import ETL 
 
 
@@ -35,18 +32,16 @@ class TrainModel(ETL):
 
         self.cv = cv
         self.configs = self.read_config(config_type='train', config_file='train_config')
+        self.C = self.configs['C']
 
         self.train = train_data
         if self.train is None:
-            print('> no train data passed')
             super().generate_dataset(hub)
 
         self.X, self.y = self.split_xy(self.train)
         self.model = self.train_model()
         self.coeffs = self.format_coeffs(self.model)
-
-        # self.yhat_df = predictions.test_with_GT(logit_clf=self.model, X_df=self.X)
-
+        self.non_parametric_model = self.generate_nonparametric_model()
 
 
     def set_LR_parameters(self):
@@ -57,14 +52,14 @@ class TrainModel(ETL):
         """
         
         if self.cv:
-            configs = {k:v for k,v in self.configs.items() if k != 'C'}
-            clf = LogisticRegressionCV().set_params(**configs)
-
+            self.configs = {k:v for k,v in self.configs.items() if k != 'C'}
+            clf = LogisticRegressionCV().set_params(**self.configs)
+            
         else:
-            configs = {k:v for k,v in self.configs.items() if k != 'Cs'}
-            clf = LogisticRegression().set_params(**configs)
+            self.configs = {k:v for k,v in self.configs.items() if k != 'Cs'}
+            clf = LogisticRegression().set_params(**self.configs)
 
-        print(f'Training model with params: {configs}')
+        print(f'Training model with params: {self.configs}')
         return clf
 
 
@@ -80,24 +75,31 @@ class TrainModel(ETL):
         logit_clf.fit(X, y)
 
         if self.cv:
-            # all_cs = logit_clf.Cs_
-            self.best_C = logit_clf.C_[0]
-            print('best C:', self.best_C)
-
-
-        # self.predictions = self.yhat_df.Predictions.to_numpy()
-        # self.conf_mat, self.results, self.metrics = get_model_metrics(y_true=y, y_hat=self.predictions)
-        # logging.info(f'\n=== TRAINING RESULTS === \n\n{self.conf_mat}\n')
+            self.C = logit_clf.C_[0]
 
         return logit_clf
 
 
     def format_coeffs(self, model):
 
+        print(len((self.X.columns)))
         coeff_df = pd.Series(model.coef_[0], index=self.X.columns)
         coeff_df = coeff_df.append(pd.Series(model.intercept_[0], index=['Intercept']))
+        coeff_df = coeff_df.append(pd.Series(self.C, index=['C']))
+        coeff_df = coeff_df.append(pd.Series('True' if self.cv else 'False', index=['cv']))
 
         return coeff_df
+
+
+    def generate_nonparametric_model(self):
+        """Create likilihood of occupancy, based only on past occupancy (training data)
+        """
+        df = self.train.copy()
+
+        df.insert(loc=1, column='time', value=df.index.time)
+        df = df[['weekend', 'occupied', 'time']]
+        model = df.groupby(['weekend', 'time']).mean()
+        return model
 
 
 
@@ -119,9 +121,3 @@ if __name__ == '__main__':
             fill_type=args.fill_type,
             cv=args.cv
             )
-
-    # print('yhat', Data.yhat_df)
-    # print('y', Data.y)
-
-    # print('===========')
-    # print(Data.coeffs)
