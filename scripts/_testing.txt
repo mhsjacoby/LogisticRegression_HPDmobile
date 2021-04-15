@@ -1,0 +1,6 @@
+homes: ['H1', 'H2']
+hubs: {'H1': ['RS1', 'RS2', 'RS3', 'RS4', 'RS5'], 'H2': ['RS1', 'RS2', 'RS4', 'RS5']}
+cv: True
+fill type: zeros
+model train parameters: {'H1': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'Cs': 30}, 'H2': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'Cs': 30}}
+best C: {'H1': 221.22162910704503, 'H2': 0.20433597178569418}

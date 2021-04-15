@@ -1,9 +1,9 @@
 """
 prediction_functions.py
 Author: Maggie Jacoby
-Date: 2021-04-13
+Date: 2021-04-15
 """
-
+import sys
 import numpy as np
 import pandas as pd
 from datetime import datetime, date
@@ -12,8 +12,6 @@ import model_metrics as my_metrics
 
 def baseline_OR(X, y, metrics, thresh=0.5):
     """Get baseline results to compare LR to
-
-    Uses the previous OR gate and generate predictions
 
     Returns: y_hat (predictions) and f1(rev) and accuracy
     """
@@ -50,11 +48,18 @@ def test_with_GT(logit_clf, X_df):
     return df
 
 
-def get_predictions_nonparametric():
-    """Create likilihood of occupancy, based only on past occupancy
+def get_nonparametric_preds(model, X, thresh=0.5):
+    """Return probability of occupancy, based on the nonparametric model
     """
-    pass
-
+    X_np = X[['weekend']]
+    X_np.insert(loc=1, column='time', value=X_np.index.time)
+    df = X_np.merge(model, how='left', on=['weekend', 'time'])
+    df.index = X_np.index
+    df.drop(columns=['weekend', 'time'], inplace=True)
+    df.columns = ['Probability']
+    df['Predictions'] = df['Probability'].apply(lambda x: 1 if (x >= thresh) else 0)
+    return df
+    
 
 
 def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):

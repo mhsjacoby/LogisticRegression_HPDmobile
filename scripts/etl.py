@@ -22,6 +22,8 @@ import pandas as pd
 from glob import glob
 from datetime import datetime, date
 
+import prediction_functions as pred_fncs
+
 
 class ETL():
     """All functions to extract, transform, and load the train and test data sets.
@@ -45,7 +47,14 @@ class ETL():
         self.hubs_to_use = self.get_hubs(hub)
         self.days = self.get_days()
 
+        # ths = self.home_configs['zone_thresholds']
+        # for hub in ths:
+        #     print(hub, ths[hub])
+        # # sys.exit()
+
         df = self.get_data()
+        # pred_fncs.get_predictions_nonparametric(df)
+
         self.train, self.test = self.get_train_test(df)
 
 
@@ -65,12 +74,12 @@ class ETL():
 
 
     def read_config(self, config_type, config_file=None):
-        """Reads in the configuration file (*.yaml).
+        """Reads in the configuration file (*.yml).
         
         Returns: configuration parameters
         """
         if not config_file:
-            file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type}_config.yaml'))
+            file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type}_config.yml'))
 
             if len(file_list) == 0:
                 print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
@@ -80,7 +89,7 @@ class ETL():
             print(f'{len(file_list)} {config_type} configuration file(s) found for {self.H_num}')
 
         else:
-            config_file_path = os.path.join(self.config_dir, f'{config_file}.yaml')
+            config_file_path = os.path.join(self.config_dir, f'{config_file}.yml')
 
         print(f'Using: {os.path.basename(config_file_path)}')
 
@@ -141,8 +150,8 @@ class ETL():
             hub_df = self.read_infs(data_path=hub_path)
             all_hub_dfs.append(hub_df)
 
-        df = all_hub_dfs[0] ###
-        # df = self.combine_hubs(df_list=all_hub_dfs)
+        df = pd.concat(all_hub_dfs).groupby(level=0).max()
+
         df = self.create_HOD(df)
         df = self.create_lags(df)
         return df
@@ -225,8 +234,9 @@ class ETL():
         df.insert(loc=0, column='day', value=df['date'].dt.date)
         df.insert(loc=1, column='hour', value=df['date'].dt.hour+df['date'].dt.minute/60)
         df.insert(loc=2, column='DOW', value=df['date'].dt.weekday)
-        df['weekday'] = 0
-        df.loc[df.DOW > 4, 'weekday'] = 1
+
+        df['weekend'] = 0
+        df.loc[df.DOW > 4, 'weekend'] = 1
 
         df['hr_sin'] = np.sin(df.hour*(2.*np.pi/24))
         df['hr_cos'] = np.cos(df.hour*(2.*np.pi/24))
@@ -254,23 +264,6 @@ class ETL():
         return df
 
 
-    def get_rolling_avg(self, df):
-        """Write function that gets lag as a rolling average, not discrete.
-
-        Returns: df with rolling averages
-        """
-        pass
-
-
-    def combine_hubs(self, df_list):
-        """Write function to combine multiple hub dfs into one. 
-        Takes in list of dfs
-
-        Returns: df with all hubs combined
-        """        
-        pass
-
-
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser(description='Extract, transform, and load training/testing data')
@@ -281,7 +274,8 @@ if __name__ == '__main__':
 
     Data = ETL(
             H_num=args.home,
-            # hub=args.hub,
             fill_type=args.fill_type
             )
     Data.generate_dataset(hub=args.hub)
+
+

@@ -1,5 +1,5 @@
 """
-train_test2.py
+run_all.py
 Authors: Maggie Jacoby
 Last update: 2021-04-15
 """
