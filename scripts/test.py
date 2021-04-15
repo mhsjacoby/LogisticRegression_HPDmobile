@@ -1,7 +1,7 @@
 """
 test.py
 Authors: Maggie Jacoby and Jasmine Garland
-Last update: 2021-04-13
+Last update: 2021-04-15
 """
 
 import os
@@ -31,7 +31,7 @@ class TestModel(ETL):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, H_num, model, hub='', test_data=None, fill_type='zeros', save_results=False):
+    def __init__(self, H_num, model, non_param, hub='', test_data=None, fill_type='zeros'):
 
         super().__init__(H_num=H_num, fill_type=fill_type)
         
@@ -42,10 +42,11 @@ class TestModel(ETL):
         self.X, self.y = self.split_xy(self.test)
         self.metrics = None
         self.yhat = None
-        self.test_model(model)
+        self.test_models(clf=model, non_param_model=non_param)
 
 
-    def test_model(self, clf, test_gt=False):
+
+    def test_models(self, clf, non_param_model):
         """Test the trained model on unseen data
 
         Returns: nothing
@@ -53,6 +54,11 @@ class TestModel(ETL):
         y = self.y.to_numpy()
         metrics = {}
         metrics = pred_fncs.baseline_OR(X=self.X, y=y, metrics=metrics)
+
+        np_df = pred_fncs.get_nonparametric_preds(X=self.X, model=non_param_model)
+        np_yhat = np_df['Predictions'].to_numpy()
+        _, np_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=np_yhat)
+        metrics['Nonparametric'] = np_metrics
 
         gt_df = pred_fncs.test_with_GT(logit_clf=clf, X_df=self.X)
         gt_yhat = gt_df['Predictions'].to_numpy()
