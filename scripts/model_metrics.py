@@ -35,6 +35,7 @@ def get_model_metrics(y_true, y_hat):
                         'F1 neg': f'{f1_rev:.4}',
                         }
 
+    results_metrics.update(counts(confusion_matrix(y_true, y_hat)))
     return conf_mat, results_metrics
 
 
