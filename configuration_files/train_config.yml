@@ -1,0 +1,7 @@
+# train_config.yml
+
+penalty: l1
+solver: saga
+max_iter: 5000
+C: 0.1
+Cs: 30

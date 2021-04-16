@@ -1,0 +1,12 @@
+# H4_etl_config.yml
+
+H_num: H4
+H_system: red
+start_end: [[2019-05-01, 2019-05-12], [2019-05-17, 2019-05-21]]
+hubs: [1, 2, 3, 4, 5]
+zone_thresholds:
+                RS1: 0.3
+                RS2: 0.4
+                RS3: 0.35
+                RS4: 0.3
+                RS5: 0.3

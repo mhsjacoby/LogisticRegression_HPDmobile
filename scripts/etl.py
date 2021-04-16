@@ -68,9 +68,9 @@ class ETL():
         self.config_dir = os.path.join(parent_dir, 'configuration_files')
         self.log_save_dir = os.path.join(parent_dir, 'logs')
         self.data_dir = os.path.join(parent_dir, 'data')
-        self.models_dir = os.path.join(parent_dir, 'models')
         self.raw_data = os.path.join(parent_dir, 'raw_data_files')
-        self.results_csvs = os.path.join(parent_dir, 'results_csvs')
+        self.models_dir = os.makedirs(os.path.join(parent_dir, 'models', self.H_num), exist_ok=True)
+        self.results_csvs = os.makedirs(os.path.join(parent_dir, 'Results', self.H_num), exist_ok=True)
 
 
     def read_config(self, config_type, config_file=None):
@@ -146,14 +146,14 @@ class ETL():
         all_hub_dfs = []
 
         for hub in self.hubs_to_use:
-            hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}_prob.csv')
+            hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
             hub_df = self.read_infs(data_path=hub_path)
             all_hub_dfs.append(hub_df)
 
         df = pd.concat(all_hub_dfs).groupby(level=0).max()
 
         df = self.create_HOD(df)
-        df = self.create_lags(df)
+        df = self.create_rolling_lags(df)
         return df
 
 
@@ -245,7 +245,7 @@ class ETL():
         return df
 
 
-    def create_lags(self, df, lag_hours=8, min_inc=5):
+    def create_static_lags(self, df, lag_hours=8, min_inc=5):
         """Creates lagged occupancy variable
 
         Takes in a df and makes lags up to (and including) lag_hours.
@@ -256,11 +256,23 @@ class ETL():
         ts = int(60/min_inc)
         occ_series = df['occupied']
 
-        # occ_rolling_avg = 
-
         for i in range(1, lag_hours+1):
             lag_name = f'lag{i}_occupied'
             df[lag_name] = occ_series.shift(periods=ts*i)
+        return df
+
+
+    def create_rolling_lags(self, df, lag_hours=8, min_inc=5):
+
+        ts = int(60/min_inc)
+        # df['occupied'] = 300
+
+        df_roll = df['occupied'].rolling(window=ts).mean()
+
+        for i in range(0, lag_hours):
+            lag_name = f'lag{i+1}_occupied'
+            df[lag_name] = df_roll.shift(periods=ts*i+1)
+        # df.to_csv(f'/Users/maggie/Desktop/lag{self.H_num}_test.csv')
         return df
 
 

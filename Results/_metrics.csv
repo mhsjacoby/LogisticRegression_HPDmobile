@@ -1,0 +1,6 @@
+function,Accuracy,RMSE,F1,F1 neg,train,test,self/cross
+AR ground truth,0.9824,0.1326,0.9897,0.9411,H1,H1,self
+AR predictions,0.8531,0.3832,0.9129,0.5322,H1,H1,self
+Nonparametric,0.7989,0.4485,0.8837,0.2576,H1,H1,self
+OR (ai),0.3509,0.8057,0.3791,0.32,H1,H1,self
+OR (aie),0.8464,0.3919,0.9168,0.0,H1,H1,self

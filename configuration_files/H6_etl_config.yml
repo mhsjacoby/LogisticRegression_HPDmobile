@@ -1,0 +1,11 @@
+# H6_etl_config.yml
+
+H_num: H6
+H_system: black
+start_end: [[2019-10-12, 2019-11-02], [2019-11-20, 2019-12-05]]
+hubs: [2, 3, 4, 5]
+zone_thresholds:
+                BS2: 0.3
+                BS3: 0.3
+                BS4: 0.5
+                BS5: 0.6

@@ -42,6 +42,7 @@ class TestModel(ETL):
         self.X, self.y = self.split_xy(self.test)
         self.metrics = None
         self.yhat = None
+        self.predictions = None
         self.test_models(clf=model, non_param_model=non_param)
 
 
@@ -53,24 +54,33 @@ class TestModel(ETL):
         """
         y = self.y.to_numpy()
         metrics = {}
-        metrics = pred_fncs.baseline_OR(X=self.X, y=y, metrics=metrics)
+        predictions_df, metrics = pred_fncs.baseline_OR(X=self.X, y=y, metrics=metrics)
 
         np_df = pred_fncs.get_nonparametric_preds(X=self.X, model=non_param_model)
         np_yhat = np_df['Predictions'].to_numpy()
-        _, np_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=np_yhat)
+        np_results, np_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=np_yhat)
         metrics['Nonparametric'] = np_metrics
+        predictions_df['prob np'] = np_df['Probability']
+        predictions_df['pred np'] = np_df['Predictions']
 
         gt_df = pred_fncs.test_with_GT(logit_clf=clf, X_df=self.X)
         gt_yhat = gt_df['Predictions'].to_numpy()
-        _, gt_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=gt_yhat)
+        gt_results, gt_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=gt_yhat)
         metrics['AR ground truth'] = gt_metrics
+        predictions_df['prob gt-AR'] = gt_df['Probability']
+        predictions_df['pred gt-AR'] = gt_df['Predictions']     
 
         self.df = pred_fncs.test_with_predictions(logit_clf=clf, X=self.X)
         self.yhat = self.df['Predictions'].to_numpy()
-        _, pred_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=self.yhat)
+        results, pred_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=self.yhat)
         metrics['AR predictions'] = pred_metrics
+        predictions_df['prob AR'] = self.df['Probability']
+        predictions_df['pred AR'] = self.df['Predictions']
+        predictions_df['ground truth'] = self.y
+        # print(predictions_df)
 
         self.metrics = pd.DataFrame(metrics).transpose()
+        self.predictions = predictions_df
         
 
     # def import_model(self, model_to_test):

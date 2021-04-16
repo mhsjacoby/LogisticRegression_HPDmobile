@@ -17,6 +17,7 @@ def baseline_OR(X, y, metrics, thresh=0.5):
     """
     base_cols = ['audio', 'img']
     full_cols =  base_cols + ['temp', 'rh', 'light', 'co2eq']
+    predictions_df = pd.DataFrame(index=X.index)
 
     for cols, title in zip([base_cols, full_cols], ('OR (ai)', 'OR (aie)')):
         df = X[cols].copy()
@@ -26,8 +27,11 @@ def baseline_OR(X, y, metrics, thresh=0.5):
         y_hat = df['pred'].to_numpy()
         _, blm = my_metrics.get_model_metrics(y_true=y, y_hat=y_hat)
         metrics[title] = blm
-    return metrics
-
+        
+        predictions_df[f'prob {title.strip(" OR()")}'] = df['prob']
+        predictions_df[f'pred {title.strip(" OR()")}'] = df['pred']
+  
+    return predictions_df, metrics
 
 def test_with_GT(logit_clf, X_df):
     """Run data through classifier to get predictions given X and y using ground truth for lags

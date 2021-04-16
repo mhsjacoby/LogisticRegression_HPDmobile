@@ -1,6 +1,0 @@
-# H1_etl_config.yaml
-
-H_num: H1
-H_system: red
-start_end: [[2019-11-26, 2019-12-25]]
-hubs: [3, 4]
