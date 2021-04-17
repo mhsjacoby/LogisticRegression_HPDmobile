@@ -27,7 +27,7 @@ def baseline_OR(X, y, metrics, thresh=0.5):
         y_hat = df['pred'].to_numpy()
         _, blm = my_metrics.get_model_metrics(y_true=y, y_hat=y_hat)
         metrics[title] = blm
-        
+
         predictions_df[f'prob {title.strip(" OR()")}'] = df['prob']
         predictions_df[f'pred {title.strip(" OR()")}'] = df['pred']
   
@@ -92,15 +92,38 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
         y_proba = logit_clf.predict_proba(curr_row)[:,1]
         idx_loc = preds_X.index.get_loc(idx)
 
-        for j in range(1, hr_lag + 1):
-            lag_col_name = f'lag{j}_occupied'
-            ind_to_set = idx_loc + j*ts
+        # for j in range(1, hr_lag + 1):
+        #     lag_col_name = f'lag{j}_occupied'
+        #     ind_to_set = idx_loc + j*ts
+        #     try:
+        #         preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
+        #     except:
+        #         continue
+        
+        ys.append((idx, y_proba[0], y_hat[0]))   
+
+
+        if idx_loc < 11:
+            continue
+
+        to_avg = [y[1] for y in ys[-12:]]
+        df_roll = np.mean(to_avg)
+
+        for j in range(0, hr_lag):
+            lag_col_name = f'lag{j+1}_occupied'
+            ind_to_set = idx_loc + j*ts + 1
             try:
-                preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
+                preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = df_roll
             except:
                 continue
 
-        ys.append((idx, y_proba[0], y_hat[0]))
+    
+
+        
+
+
+
+
     y_hats = pd.DataFrame(ys).set_index(0)
     y_hats.index.name = 'timestamp'
     y_hats.columns = ['Probability', 'Predictions']

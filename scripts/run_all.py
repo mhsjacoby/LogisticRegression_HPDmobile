@@ -39,44 +39,44 @@ H1 = TrainModel(
         H_num='H1',
         cv=args.cv,
         fill_type=args.fill_type,
-        # hub='RS4'
+        hub='RS4'
         )
 
-H2 = TrainModel(
-        H_num='H2',
-        cv=args.cv,
-        fill_type=args.fill_type,
-        # hub='RS2'
-        )
+# H2 = TrainModel(
+#         H_num='H2',
+#         cv=args.cv,
+#         fill_type=args.fill_type,
+#         # hub='RS2'
+#         )
 
-H3 = TrainModel(
-        H_num='H3',
-        cv=args.cv,
-        fill_type=args.fill_type,
-        # hub='RS3'
-        )
+# H3 = TrainModel(
+#         H_num='H3',
+#         cv=args.cv,
+#         fill_type=args.fill_type,
+#         # hub='RS3'
+#         )
 
-H4 = TrainModel(
-        H_num='H4',
-        cv=args.cv,
-        fill_type=args.fill_type,
-        )
+# H4 = TrainModel(
+#         H_num='H4',
+#         cv=args.cv,
+#         fill_type=args.fill_type,
+#         )
 
-H5 = TrainModel(
-        H_num='H5',
-        cv=args.cv,
-        fill_type=args.fill_type,
-        )
+# H5 = TrainModel(
+#         H_num='H5',
+#         cv=args.cv,
+#         fill_type=args.fill_type,
+#         )
 
-H6 = TrainModel(
-        H_num='H6',
-        cv=args.cv,
-        fill_type=args.fill_type,
-        )
+# H6 = TrainModel(
+#         H_num='H6',
+#         cv=args.cv,
+#         fill_type=args.fill_type,
+#         )
 
 
-homes = [H1, H2, H3, H4, H5, H6]
-# homes = [H1]
+# homes = [H1, H2, H3, H4, H5, H6]
+homes = [H1]
 
 
 all_metrics = []

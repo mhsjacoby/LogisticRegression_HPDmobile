@@ -69,7 +69,7 @@ class ETL():
         self.log_save_dir = os.path.join(parent_dir, 'logs')
         self.data_dir = os.path.join(parent_dir, 'data')
         self.raw_data = os.path.join(parent_dir, 'raw_data_files')
-        self.models_dir = os.makedirs(os.path.join(parent_dir, 'models', self.H_num), exist_ok=True)
+        self.models_dir = os.path.join(parent_dir, 'models', self.H_num)
         self.results_csvs = os.makedirs(os.path.join(parent_dir, 'Results', self.H_num), exist_ok=True)
 
 

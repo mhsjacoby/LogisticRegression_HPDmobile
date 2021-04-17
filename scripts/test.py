@@ -77,9 +77,12 @@ class TestModel(ETL):
         predictions_df['prob AR'] = self.df['Probability']
         predictions_df['pred AR'] = self.df['Predictions']
         predictions_df['ground truth'] = self.y
+        
         # print(predictions_df)
 
         self.metrics = pd.DataFrame(metrics).transpose()
+        print(self.metrics)
+        sys.exit()
         self.predictions = predictions_df
         
 
