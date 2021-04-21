@@ -82,7 +82,6 @@ class TrainModel(ETL):
 
     def format_coeffs(self, model):
 
-        print(len((self.X.columns)))
         coeff_df = pd.Series(model.coef_[0], index=self.X.columns)
         coeff_df = coeff_df.append(pd.Series(model.intercept_[0], index=['Intercept']))
         coeff_df = coeff_df.append(pd.Series(self.C, index=['C']))

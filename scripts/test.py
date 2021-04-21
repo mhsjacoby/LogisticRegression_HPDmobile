@@ -82,7 +82,6 @@ class TestModel(ETL):
 
         self.metrics = pd.DataFrame(metrics).transpose()
         print(self.metrics)
-        sys.exit()
         self.predictions = predictions_df
         
 

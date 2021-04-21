@@ -83,25 +83,17 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
     preds_X.index = pd.to_datetime(preds_X.index)
 
     ys = []
-
+    k=0
     for idx, _ in preds_X.iterrows():
+        k+=1
         df_row = preds_X.loc[idx]
         curr_row = df_row.to_numpy().reshape(1,-1)
 
         y_hat = logit_clf.predict(curr_row)
         y_proba = logit_clf.predict_proba(curr_row)[:,1]
         idx_loc = preds_X.index.get_loc(idx)
-
-        # for j in range(1, hr_lag + 1):
-        #     lag_col_name = f'lag{j}_occupied'
-        #     ind_to_set = idx_loc + j*ts
-        #     try:
-        #         preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
-        #     except:
-        #         continue
         
         ys.append((idx, y_proba[0], y_hat[0]))   
-
 
         if idx_loc < 11:
             continue
@@ -116,13 +108,6 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
                 preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = df_roll
             except:
                 continue
-
-    
-
-        
-
-
-
 
     y_hats = pd.DataFrame(ys).set_index(0)
     y_hats.index.name = 'timestamp'
