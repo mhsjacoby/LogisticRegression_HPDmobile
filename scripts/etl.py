@@ -47,15 +47,8 @@ class ETL():
         self.hubs_to_use = self.get_hubs(hub)
         self.days = self.get_days()
 
-        # ths = self.home_configs['zone_thresholds']
-        # for hub in ths:
-        #     print(hub, ths[hub])
-        # # sys.exit()
-
-        df = self.get_data()
-        # pred_fncs.get_predictions_nonparametric(df)
-
-        self.train, self.test = self.get_train_test(df)
+        self.df = self.get_data()
+        self.train, self.test = self.get_train_test(self.df)
 
 
     def get_directories(self):
@@ -63,7 +56,7 @@ class ETL():
 
         Returns: nothing
         """
-        parent_dir = os.path.dirname(os.getcwd())
+        parent_dir = os.getcwd()
 
         self.config_dir = os.path.join(parent_dir, 'configuration_files')
         self.log_save_dir = os.path.join(parent_dir, 'logs')
@@ -80,6 +73,7 @@ class ETL():
         """
         if not config_file:
             file_list = glob(os.path.join(self.config_dir, f'{self.H_num}_{config_type}_config.yml'))
+            print(os.path.join(self.config_dir, f'{self.H_num}_{config_type}_config.yml'))
 
             if len(file_list) == 0:
                 print(f'No {config_type} configuration file for {self.H_num}. Exiting program.')
@@ -265,14 +259,11 @@ class ETL():
     def create_rolling_lags(self, df, lag_hours=8, min_inc=5):
 
         ts = int(60/min_inc)
-        # df['occupied'] = 300
-
         df_roll = df['occupied'].rolling(window=ts).mean()
 
         for i in range(0, lag_hours):
             lag_name = f'lag{i+1}_occupied'
             df[lag_name] = df_roll.shift(periods=ts*i+1)
-        # df.to_csv(f'/Users/maggie/Desktop/lag{self.H_num}_test.csv')
         return df
 
 
