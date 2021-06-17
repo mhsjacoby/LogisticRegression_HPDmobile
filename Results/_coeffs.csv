@@ -1,0 +1,21 @@
+,H1 (aie),H1 (ai)
+audio,0.466091801,0.614348722
+co2eq,0,0
+light,0,
+rh,0,
+temp,6.124894806,
+img,0,
+weekend,0.634888143,0.567925739
+hr_sin,0,0
+hr_cos,1.738127693,1.846210384
+lag1_occupied,7.417854866,8.395653019
+lag2_occupied,-1.119055834,-1.63274286
+lag3_occupied,0,0
+lag4_occupied,0,0
+lag5_occupied,-0.02377771,0
+lag6_occupied,-0.260910952,-0.109342784
+lag7_occupied,0,0
+lag8_occupied,0,0
+Intercept,-8.460697801,-3.80786002
+C,0.1,0.1
+cv,FALSE,FALSE

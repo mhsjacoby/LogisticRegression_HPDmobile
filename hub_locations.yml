@@ -1,0 +1,41 @@
+# hub_locations.yml
+
+H1: 
+    RS1: LR
+    RS2: LR
+    RS3: Dining
+    RS4: Kitchen
+    RS5: Entry
+
+H2: 
+    RS1: Dining
+    RS2: Entry
+    RS4: Kitchen
+    RS5: LR
+
+H3: 
+    RS1: Kitchen
+    RS2: Dining
+    RS3: LR, Entry
+    RS4: Office
+    RS5: Kitchen, Dining
+
+H4: 
+    RS1: LR
+    RS2: Entry
+    RS3: Dining, LR
+    RS4: Kitchen
+    RS5: Transition, LR
+
+H5: 
+    RS1: LR
+    RS2: Dining, LR
+    RS3: Dining, LR, Office
+    RS4: Kitchen
+    RS5: Entry
+
+H6: 
+    BS2: Kitchen
+    BS3: Entry, Transition
+    BS4: LR
+    BS5: LR

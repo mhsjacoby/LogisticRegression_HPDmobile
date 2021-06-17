@@ -1,5 +1,5 @@
 """
-test.py
+testAR.py
 Authors: Maggie Jacoby and Jasmine Garland
 Last update: 2021-04-15
 """
@@ -20,7 +20,7 @@ from sklearn.metrics import confusion_matrix
 import model_metrics as my_metrics
 import prediction_functions as pred_fncs
 from etl import ETL 
-from train import TrainModel
+from trainAR import TrainModel
 
 
 
@@ -31,7 +31,7 @@ class TestModel(ETL):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, H_num, model, non_param, hub='', test_data=None, fill_type='zeros'):
+    def __init__(self, H_num, model, non_param=None, hub='', test_data=None, fill_type='zeros', all_models=True):
 
         super().__init__(H_num=H_num, fill_type=fill_type)
         
@@ -43,11 +43,25 @@ class TestModel(ETL):
         self.metrics = None
         self.yhat = None
         self.predictions = None
-        self.test_models(clf=model, non_param_model=non_param)
+
+        if all_models:
+            self.test_all_models(clf=model, non_param_model=non_param)
+        else:
+            self.test_AR(clf=model)
+
+    
+    def test_AR(self, clf):
+        print('AR only ')
+        y = self.y.to_numpy()
+        metrics = {}
+
+        self.df = pred_fncs.test_with_predictions(logit_clf=clf, X=self.X)
+        self.yhat = self.df['Predictions'].to_numpy()
+        self.results, self.pred_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=self.yhat)
 
 
 
-    def test_models(self, clf, non_param_model):
+    def test_all_models(self, clf, non_param_model):
         """Test the trained model on unseen data
 
         Returns: nothing
@@ -66,22 +80,23 @@ class TestModel(ETL):
         gt_df = pred_fncs.test_with_GT(logit_clf=clf, X_df=self.X)
         gt_yhat = gt_df['Predictions'].to_numpy()
         gt_results, gt_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=gt_yhat)
-        metrics['AR ground truth'] = gt_metrics
+        metrics['ground truth AR'] = gt_metrics
         predictions_df['prob gt-AR'] = gt_df['Probability']
         predictions_df['pred gt-AR'] = gt_df['Predictions']     
 
         self.df = pred_fncs.test_with_predictions(logit_clf=clf, X=self.X)
         self.yhat = self.df['Predictions'].to_numpy()
         results, pred_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=self.yhat)
-        metrics['AR predictions'] = pred_metrics
+        metrics['AR predictions (aie)'] = pred_metrics
         predictions_df['prob AR'] = self.df['Probability']
         predictions_df['pred AR'] = self.df['Predictions']
+
         predictions_df['ground truth'] = self.y
         
         # print(predictions_df)
 
         self.metrics = pd.DataFrame(metrics).transpose()
-        print(self.metrics)
+        # print(self.metrics)
         self.predictions = predictions_df
         
 

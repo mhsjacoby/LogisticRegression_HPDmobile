@@ -1,0 +1,17 @@
+,H1
+audio,0.614348722
+img,0
+weekend,0.567925739
+hr_sin,0
+hr_cos,1.846210384
+lag1_occupied,8.395653019
+lag2_occupied,-1.63274286
+lag3_occupied,0
+lag4_occupied,0
+lag5_occupied,0
+lag6_occupied,-0.109342784
+lag7_occupied,0
+lag8_occupied,0
+Intercept,-3.80786002
+C,0.1
+cv,FALSE

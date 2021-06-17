@@ -1,16 +1,16 @@
 """
-train.py
+trainAR.py
 Authors: Maggie Jacoby and Jasmine Garland
 Last update: 2021-04-15
 """
 
-import os
-import sys
-import csv
-import pickle
-import logging
+# import os
+# import sys
+# import csv
+# import pickle
+# import logging
 import argparse
-import numpy as np
+# import numpy as np
 import pandas as pd
 from glob import glob
 from datetime import datetime, date
@@ -26,13 +26,14 @@ class TrainModel(ETL):
     Writes a pickle file with the trained LR model at the end.
     """
 
-    def __init__(self, H_num, hub='', train_data=None, fill_type='zeros', cv=False, save_model=False):
+    def __init__(self, H_num, hub='', train_data=None, fill_type='zeros', cv=False, split=0.6):
 
-        super().__init__(H_num=H_num, fill_type=fill_type)
+        super().__init__(H_num=H_num, fill_type=fill_type, split=split)
 
         self.cv = cv
         self.configs = self.read_config(config_type='train', config_file='train_config')
         self.C = self.configs['C']
+        # self.main()
 
         self.train = train_data
         if self.train is None:
@@ -80,6 +81,8 @@ class TrainModel(ETL):
         return logit_clf
 
 
+
+
     def format_coeffs(self, model):
 
         coeff_df = pd.Series(model.coef_[0], index=self.X.columns)
@@ -99,6 +102,19 @@ class TrainModel(ETL):
         df = df[['weekend', 'occupied', 'time']]
         model = df.groupby(['weekend', 'time']).mean()
         return model
+
+    # def main(self):
+    #     self.train = train_data
+    #     if self.train is None:
+    #         print('generating etl dataset')
+    #         super().generate_dataset(hub)
+    #     print(self.train)
+
+
+    #     self.X, self.y = self.split_xy(self.train)
+    #     self.model = self.train_model()
+    #     self.coeffs = self.format_coeffs(self.model)
+    #     self.non_parametric_model = self.generate_nonparametric_model()        
 
 
 
