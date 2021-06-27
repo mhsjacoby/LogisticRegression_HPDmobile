@@ -31,6 +31,7 @@ class TrainModel(ETL):
         super().__init__(H_num=H_num, fill_type=fill_type)
 
         self.cv = cv
+        print('cv', self.cv)
         self.configs = self.read_config(config_type='train', config_file='train_config')
         self.C = self.configs['C']
 
@@ -52,10 +53,12 @@ class TrainModel(ETL):
         """
         
         if self.cv:
+            print('cross valid!')
             self.configs = {k:v for k,v in self.configs.items() if k != 'C'}
             clf = LogisticRegressionCV().set_params(**self.configs)
             
         else:
+            print('no cv :( ')
             self.configs = {k:v for k,v in self.configs.items() if k != 'Cs'}
             clf = LogisticRegression().set_params(**self.configs)
 
@@ -76,6 +79,8 @@ class TrainModel(ETL):
 
         if self.cv:
             self.C = logit_clf.C_[0]
+            print('best C:' , logit_clf.C_)
+            print('all Cs: ', [f'{i:5.4f}' for i in logit_clf.Cs_])
 
         return logit_clf
 
@@ -108,7 +113,7 @@ if __name__ == '__main__':
     parser.add_argument('-home', '--home', default='H1', type=str, help='Home to get data for, eg H1')
     parser.add_argument('-hub', '--hub', default='', type=str, help='which hub to use? (leave blank if using config file to specify)')
     parser.add_argument('-fill_type', '--fill_type', default='zeros', type=str, help='How to treat missing values')
-    parser.add_argument('-cv', '--cv', default=False, action='store_true', help='Perform cross-validation?')
+    parser.add_argument('-cv', '--cv', default=True, action='store_true', help='Perform cross-validation?')
     args = parser.parse_args()
 
     if not args.cv:
