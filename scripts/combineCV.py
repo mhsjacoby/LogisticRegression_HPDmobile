@@ -1,7 +1,7 @@
 """
-run_all.py
+combineCV.py
 Authors: Maggie Jacoby
-Last update: 2021-04-15
+Last update: 2021-06-18
 """
 
 
@@ -77,9 +77,9 @@ H6 = TrainModel(
         cv=args.cv,
         fill_type=args.fill_type,
         )
+sys.exit()
 
-
-homes = [H1, H2, H3]#, H4, H5, H6]
+homes = [H1, H2, H3, H4, H5, H6]
 # homes = [H1]
 
 

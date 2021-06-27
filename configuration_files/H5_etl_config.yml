@@ -2,7 +2,7 @@
 
 H_num: H5
 H_system: red
-start_end: [[2019-06-07, 2019-06-21]]
+start_end: [[2019-06-05, 2019-06-26]]
 hubs: [1, 2, 3, 4, 5]
 zone_thresholds:
                 RS1: 0.3

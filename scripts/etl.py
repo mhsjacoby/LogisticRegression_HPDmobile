@@ -45,10 +45,13 @@ class ETL():
     def generate_dataset(self, hub=''):
         self.home_configs = self.read_config(config_type='etl')
         self.hubs_to_use = self.get_hubs(hub)
-        self.days = self.get_days()
 
-        self.df = self.get_data()
-        self.train, self.test = self.get_train_test(self.df)
+        df = self.get_data()
+        groups = self.get_days()
+        self.daysets = self.get_groups(df, groups)
+        print(len(self.daysets))
+        # sys.exit() 
+        # self.train, self.test = self.get_train_test(self.df)
 
 
     def get_directories(self):
@@ -119,15 +122,33 @@ class ETL():
         If multiple lists of start/end exist, it joins them together. 
         Returns: a list of all days between start/end in config file.
         """
-        all_days = []
+        groups = []
 
         for st in self.home_configs['start_end']:
             start, end = st[0], st[1]
             pd_days = pd.date_range(start=start, end=end).tolist()
             days = [d.strftime('%Y-%m-%d') for d in pd_days]
-            all_days.extend(days)
+            groups.append(days)
 
-        return sorted(all_days)
+        # all_days = []
+        # for d in groups:
+        #     all_days += d
+        # print('all days', len(all_days))
+        # print('groups', len(groups))
+
+        return groups
+
+
+    def get_groups(self, df, groups, g=8):
+        daysets = []
+        for grp in groups:
+            for i in range(0,len(grp)-g+1):
+                nw_gp = grp[i:i+g]
+                days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in nw_gp])
+                gp_df = df[df['day'].isin(days)]
+                daysets.append(gp_df)
+        return daysets
+            
 
 
     def get_data(self):
@@ -148,6 +169,7 @@ class ETL():
 
         df = self.create_HOD(df)
         df = self.create_rolling_lags(df)
+        # df.to_csv('~/Desktop/test_6-26/test_df.csv')
         return df
 
 
@@ -182,6 +204,14 @@ class ETL():
         return df
 
 
+    # def get_groups(self):
+    #     # df = DF.copy()
+    #     print('all days')
+    #     for day in self.days:
+    #         print(day)
+
+
+
     def get_train_test(self, DF):
         """Splits data into train and test sets.
 
@@ -190,6 +220,9 @@ class ETL():
 
         Returns: training set and testing set
         """
+
+        # self.get_groups()
+
         df = DF.copy()
 
         train_size = int(len(self.days) * 0.6)
@@ -198,9 +231,27 @@ class ETL():
         train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])
         test_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days])
 
-        print('Train days:', len(train_days))
-        print('Test days:', len(test_days))
+        # print('Train days:', len(train_days))
+        # print('Test days:', len(test_days))
         
+        # print('train days: ')
+        # trx=0
+        # for i, day in enumerate(train_days,1):
+        #     print(day)
+        #     if i%3 == 0:
+        #         print('*****')
+        #         trx += 1
+        # print('*****', trx, 'groups')  
+
+        # print('Test days:')
+        # tsx = 0
+        # for i, day in enumerate(test_days,1):
+        #     print(day)
+        #     if i%3 == 0:
+        #         tsx += 1
+        #         print('*****')
+        # print('*****', tsx, 'groups')  
+
         train_df = df[df['day'].isin(train_days)]
         test_df = df[df['day'].isin(test_days)]
 
@@ -264,6 +315,7 @@ class ETL():
         for i in range(0, lag_hours):
             lag_name = f'lag{i+1}_occupied'
             df[lag_name] = df_roll.shift(periods=ts*i+1)
+            df[lag_name] = df[lag_name].round()
         return df
 
 

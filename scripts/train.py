@@ -75,7 +75,10 @@ class TrainModel(ETL):
         logit_clf.fit(X, y)
 
         if self.cv:
-            self.C = logit_clf.C_[0]
+            # self.C = logit_clf.C_[0]
+            print('best C:' , logit_clf.C_)
+            print('all Cs: ', logit_clf.Cs_)
+
 
         return logit_clf
 
