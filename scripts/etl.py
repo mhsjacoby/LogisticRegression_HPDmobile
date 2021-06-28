@@ -36,9 +36,10 @@ class ETL():
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, H_num, fill_type='zeros'):
+    def __init__(self, H_num, fill_type='zeros', g=8):
         self.H_num = H_num
         self.fill_type = fill_type
+        self.g = g
         self.get_directories()
 
 
@@ -46,10 +47,10 @@ class ETL():
         self.home_configs = self.read_config(config_type='etl')
         self.hubs_to_use = self.get_hubs(hub)
 
-        df = self.get_data()
-        groups = self.get_days()
-        self.daysets = self.get_groups(df, groups)
-        print(len(self.daysets))
+        self.groups, self.all_days = self.get_days()
+        self.df = self.get_data()
+        self.daysets = self.get_groups(df=self.df, g=self.g)
+        # print(len(self.daysets))
         # sys.exit() 
         # self.train, self.test = self.get_train_test(self.df)
 
@@ -130,26 +131,23 @@ class ETL():
             days = [d.strftime('%Y-%m-%d') for d in pd_days]
             groups.append(days)
 
-        # all_days = []
-        # for d in groups:
-        #     all_days += d
-        # print('all days', len(all_days))
-        # print('groups', len(groups))
+        all_days = []
+        for d in groups:
+            all_days += d
 
-        return groups
+        return groups, all_days
 
 
-    def get_groups(self, df, groups, g=8):
+    def get_groups(self, df, g=8):
         daysets = []
-        for grp in groups:
-            for i in range(0,len(grp)-g+1):
-                nw_gp = grp[i:i+g]
+        for grp in self.groups:
+            for i in range(0,int(np.round(len(grp)/g))):
+                nw_gp = grp[i*g:(i+1)*g]
                 days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in nw_gp])
                 gp_df = df[df['day'].isin(days)]
                 daysets.append(gp_df)
         return daysets
             
-
 
     def get_data(self):
         """Reads raw inferences for all hubs, creates dfs (including lags) and combines hubs.
@@ -169,8 +167,15 @@ class ETL():
 
         df = self.create_HOD(df)
         df = self.create_rolling_lags(df)
+        print(len(df['day'].unique()))
+        days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in self.all_days])
+
+        df_dates = df[df['day'].isin(days)]
+        print(len(df_dates['day'].unique()))
+        # sys.exit()
+        # df["Date"].map(pd.Timestamp.date).unique()
         # df.to_csv('~/Desktop/test_6-26/test_df.csv')
-        return df
+        return df_dates
 
 
     def read_infs(self, data_path, resample_rate='5min', thresh=0.5):
@@ -204,58 +209,47 @@ class ETL():
         return df
 
 
-    # def get_groups(self):
-    #     # df = DF.copy()
-    #     print('all days')
-    #     for day in self.days:
-    #         print(day)
+    # def get_train_test(self, DF):
+    #     """Splits data into train and test sets.
 
+    #     Data is time series, so splits on day, not randomly.
+    #     Also subsets based on the list of days specified by self.days.
 
+    #     Returns: training set and testing set
+    #     """
+    #     df = DF.copy()
 
-    def get_train_test(self, DF):
-        """Splits data into train and test sets.
+    #     train_size = int(len(self.days) * 0.6)
+    #     train_days = self.days[ :train_size]
+    #     test_days = self.days[train_size: ]
+    #     train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])
+    #     test_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days])
 
-        Data is time series, so splits on day, not randomly.
-        Also subsets based on the list of days specified by self.days.
-
-        Returns: training set and testing set
-        """
-
-        # self.get_groups()
-
-        df = DF.copy()
-
-        train_size = int(len(self.days) * 0.6)
-        train_days = self.days[ :train_size]
-        test_days = self.days[train_size: ]
-        train_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in train_days])
-        test_days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in test_days])
-
-        # print('Train days:', len(train_days))
-        # print('Test days:', len(test_days))
+    #     # print('Train days:', len(train_days))
+    #     # print('Test days:', len(test_days))
         
-        # print('train days: ')
-        # trx=0
-        # for i, day in enumerate(train_days,1):
-        #     print(day)
-        #     if i%3 == 0:
-        #         print('*****')
-        #         trx += 1
-        # print('*****', trx, 'groups')  
+    #     # print('train days: ')
+    #     # trx=0
+    #     # for i, day in enumerate(train_days,1):
+    #     #     print(day)
+    #     #     if i%3 == 0:
+    #     #         print('*****')
+    #     #         trx += 1
+    #     # print('*****', trx, 'groups')  
 
-        # print('Test days:')
-        # tsx = 0
-        # for i, day in enumerate(test_days,1):
-        #     print(day)
-        #     if i%3 == 0:
-        #         tsx += 1
-        #         print('*****')
-        # print('*****', tsx, 'groups')  
+    #     # print('Test days:')
+    #     # tsx = 0
+    #     # for i, day in enumerate(test_days,1):
+    #     #     print(day)
+    #     #     if i%3 == 0:
+    #     #         tsx += 1
+    #     #         print('*****')
+    #     # print('*****', tsx, 'groups')  
 
-        train_df = df[df['day'].isin(train_days)]
-        test_df = df[df['day'].isin(test_days)]
+    #     train_df = df[df['day'].isin(train_days)]
+    #     test_df = df[df['day'].isin(test_days)]
 
-        return train_df, test_df
+    #     return train_df, test_df
 
 
     def split_xy(self, df):
@@ -290,21 +284,21 @@ class ETL():
         return df
 
 
-    def create_static_lags(self, df, lag_hours=8, min_inc=5):
-        """Creates lagged occupancy variable
+    # def create_static_lags(self, df, lag_hours=8, min_inc=5):
+    #     """Creates lagged occupancy variable
 
-        Takes in a df and makes lags up to (and including) lag_hours.
-        The df is in 5 minute increments (by default), so lag is 12*hour.
+    #     Takes in a df and makes lags up to (and including) lag_hours.
+    #     The df is in 5 minute increments (by default), so lag is 12*hour.
         
-        Returns: lagged df
-        """
-        ts = int(60/min_inc)
-        occ_series = df['occupied']
+    #     Returns: lagged df
+    #     """
+    #     ts = int(60/min_inc)
+    #     occ_series = df['occupied']
 
-        for i in range(1, lag_hours+1):
-            lag_name = f'lag{i}_occupied'
-            df[lag_name] = occ_series.shift(periods=ts*i)
-        return df
+    #     for i in range(1, lag_hours+1):
+    #         lag_name = f'lag{i}_occupied'
+    #         df[lag_name] = occ_series.shift(periods=ts*i)
+    #     return df
 
 
     def create_rolling_lags(self, df, lag_hours=8, min_inc=5):

@@ -15,6 +15,7 @@ import pandas as pd
 from glob import glob
 from datetime import datetime, date
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
+from sklearn.model_selection import TimeSeriesSplit
 
 from etl import ETL 
 
@@ -44,7 +45,7 @@ class TrainModel(ETL):
         self.non_parametric_model = self.generate_nonparametric_model()
 
 
-    def set_LR_parameters(self):
+    def set_LR_parameters(self, k):
         """Sets the model parameters as specified in the configuration file.
 
         Only takes in one set of parameters.
@@ -52,34 +53,33 @@ class TrainModel(ETL):
         """
         
         if self.cv:
+            tscv = TimeSeriesSplit(n_splits=k)
             self.configs = {k:v for k,v in self.configs.items() if k != 'C'}
+            self.configs['cv'] = tscv
             clf = LogisticRegressionCV().set_params(**self.configs)
             
         else:
-            self.configs = {k:v for k,v in self.configs.items() if k != 'Cs'}
+            self.configs = {k:v for k,v in self.configs.items() if k != 'Cs' and k != 'cv'}
             clf = LogisticRegression().set_params(**self.configs)
 
         print(f'Training model with params: {self.configs}')
         return clf
 
 
-    def train_model(self):
+    def train_model(self, k=5):
         """Trains a logistic regression model.
 
         Uses default parameters, or gets params from ParameterGrid (if specified).
         Returns: sklearn logistic regression model object
         """
-        logit_clf = self.set_LR_parameters()
+        logit_clf = self.set_LR_parameters(k)
         X = self.X.to_numpy()
         y = self.y.to_numpy()
         logit_clf.fit(X, y)
 
         if self.cv:
-            # self.C = logit_clf.C_[0]
-            print('best C:' , logit_clf.C_)
-            print('all Cs: ', logit_clf.Cs_)
-
-
+            self.C = logit_clf.C_[0]
+            print('all Cs', logit_clf.Cs_)
         return logit_clf
 
 
