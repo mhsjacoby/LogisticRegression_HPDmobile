@@ -53,6 +53,9 @@ def test_with_GT(logit_clf, X_df):
 
 
 def get_nonparametric_preds(model, X, thresh=0.5):
+    # print(model)
+    # print(X.columns)
+    # sys.exit()
     """Return probability of occupancy, based on the nonparametric model
     """
     X_np = X[['weekend']]
@@ -66,26 +69,39 @@ def get_nonparametric_preds(model, X, thresh=0.5):
     
 
 
-def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
+def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5, drop_cs=False):
     """Run data through classifier and push predictions forward as lag values
 
     This is used instead of get_predictions_wGT.
     Returns: probabilities (between 0,1) and predictions (0/1) as a df
 
     """
+
+    # if drop_cs:
+    #     print('droping env cols')
+    #     X = X.drop(columns=['co2eq', 'light', 'rh', 'temp'])
+    # else:
+    #     print('using env')
+    # print(X.columns)
+
+
     ts = int(60/min_inc)
     lag_max = hr_lag*ts
 
     X_start = X.iloc[:lag_max]
     lag_cols=[c for c in X.columns if c.startswith('lag')]
     exog_vars = X.drop(columns=lag_cols).iloc[lag_max:]
+
     preds_X = pd.concat([X_start, exog_vars])
     preds_X.index = pd.to_datetime(preds_X.index)
 
     ys = []
     k=0
+
     for idx, _ in preds_X.iterrows():
         k+=1
+        # print(k)
+        
         df_row = preds_X.loc[idx]
         curr_row = df_row.to_numpy().reshape(1,-1)
 

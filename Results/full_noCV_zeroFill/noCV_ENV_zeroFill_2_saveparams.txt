@@ -1,0 +1,5 @@
+hubs: {'H1': ['RS1', 'RS2', 'RS3', 'RS4', 'RS5'], 'H2': ['RS1', 'RS2', 'RS4', 'RS5'], 'H3': ['RS1', 'RS2', 'RS3', 'RS4', 'RS5'], 'H4': ['RS1', 'RS2', 'RS3', 'RS4', 'RS5'], 'H5': ['RS1', 'RS2', 'RS3', 'RS4', 'RS5'], 'H6': ['BS2', 'BS3', 'BS4', 'BS5']}
+fill type: zeros
+model train parameters: {'H1': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'C': 0.1}, 'H2': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'C': 0.1}, 'H3': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'C': 0.1}, 'H4': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'C': 0.1}, 'H5': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'C': 0.1}, 'H6': {'penalty': 'l1', 'solver': 'saga', 'max_iter': 5000, 'C': 0.1}}
+cv: False
+best C: {'H1': 0.1, 'H2': 0.1, 'H3': 0.1, 'H4': 0.1, 'H5': 0.1, 'H6': 0.1}
