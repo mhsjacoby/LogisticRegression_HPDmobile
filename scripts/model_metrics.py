@@ -11,15 +11,36 @@ from sklearn.metrics import mean_squared_error, confusion_matrix
 from sklearn.metrics import f1_score, accuracy_score
 
 
+
+def get_missing(y_true, y_hat):
+    curr_val = int(list(y_true)[0])
+    missing = set([0,1]) - set(y_true)
+    missing_val = int(list(missing)[0])
+    all_vals = ['Vacant', 'Occupied']
+    curr_state = all_vals[curr_val]
+    missing_state = all_vals[missing_val]
+    conf_mat = pd.DataFrame(confusion_matrix(y_true, y_hat), 
+                            columns = [curr_state], index=[curr_state])
+    conf_mat[missing_state] = 0
+    conf_mat.loc[missing_state]=[0, 0]
+    return conf_mat
+
+
+
+
+
 def get_model_metrics(y_true, y_hat):
     """Stand-alone function to get metrics given classifier results.
 
     Returns: confusion matrix and dictionary with results
     """
-    conf_mat = pd.DataFrame(confusion_matrix(y_true, y_hat), 
+    conf_mat = pd.DataFrame(confusion_matrix(y_true, y_hat, labels=[0,1]), 
                             columns = ['Vacant', 'Occupied'],
                             index = ['Vacant', 'Occupied']
                             )
+    # except:
+    #     conf_mat = get_missing(y_true, y_hat)
+
     conf_mat = pd.concat([conf_mat], keys=['Actual'], axis=0)
     conf_mat = pd.concat([conf_mat], keys=['Predicted'], axis=1)
 
@@ -35,7 +56,7 @@ def get_model_metrics(y_true, y_hat):
                         'F1 neg': f'{f1_rev:.4}',
                         }
 
-    results_metrics.update(counts(confusion_matrix(y_true, y_hat)))
+    results_metrics.update(counts(confusion_matrix(y_true, y_hat, labels=[0,1])))
     return conf_mat, results_metrics
 
 

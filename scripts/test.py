@@ -46,32 +46,50 @@ class TestModel(ETL):
         self.test_models(clf=model, non_param_model=non_param)
 
 
+    def drop_day(self, df, name):
+        # print(f'{name} before {len(df)}')
+        drop_day = sorted(set(df.index.date))[0]
+        df = df[df.index.date != drop_day]
+        # print(f'{name} after {len(df)}')
+        return df
+
 
     def test_models(self, clf, non_param_model):
         """Test the trained model on unseen data
 
         Returns: nothing
         """
+        # print(self.y)
+        self.y = self.drop_day(self.y, name='y')
         y = self.y.to_numpy()
         metrics = {}
-        predictions_df, metrics = pred_fncs.baseline_OR(X=self.X, y=y, metrics=metrics)
+        drop_X = self.drop_day(self.X, name='X')
+        print('baseline or')
+        predictions_df, metrics = pred_fncs.baseline_OR(X=drop_X, y=y, metrics=metrics)
+        # predictions_df = self.drop_day(predictions_df)
 
         np_df = pred_fncs.get_nonparametric_preds(X=self.X, model=non_param_model)
+        np_df = self.drop_day(np_df, name='np')
         np_yhat = np_df['Predictions'].to_numpy()
+        print('np')
         np_results, np_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=np_yhat)
         metrics['Nonparametric'] = np_metrics
         predictions_df['prob np'] = np_df['Probability']
         predictions_df['pred np'] = np_df['Predictions']
 
         gt_df = pred_fncs.test_with_GT(logit_clf=clf, X_df=self.X)
+        gt_df = self.drop_day(gt_df, name='gt')
         gt_yhat = gt_df['Predictions'].to_numpy()
+        print('gt')
         gt_results, gt_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=gt_yhat)
         metrics['AR ground truth'] = gt_metrics
         predictions_df['prob gt-AR'] = gt_df['Probability']
         predictions_df['pred gt-AR'] = gt_df['Predictions']     
 
         self.df = pred_fncs.test_with_predictions(logit_clf=clf, X=self.X)
+        self.df = self.drop_day(self.df, name='ar')
         self.yhat = self.df['Predictions'].to_numpy()
+        print('ar')
         results, pred_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=self.yhat)
         metrics['AR predictions'] = pred_metrics
         predictions_df['prob AR'] = self.df['Probability']
@@ -81,7 +99,7 @@ class TestModel(ETL):
         # print(predictions_df)
 
         self.metrics = pd.DataFrame(metrics).transpose()
-        print(self.metrics)
+        # print(self.metrics)
         self.predictions = predictions_df
         
 

@@ -21,7 +21,7 @@ parent_dir = os.getcwd()
 
 
 homes = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6']
-# homes = ['H1', 'H2']
+# homes = ['H1', 'H4']#, 'H6']
 
 
 def test_model(tr, ts, trained_model, test_data, c):
@@ -63,35 +63,38 @@ for train_h in all_homes:
         train = pd.concat(groups)
 
         train_grp = TrainModel(H_num=train_h, train_data=train)
+        print('*****', train_h, 'self', len(train), len(test_slf))
 
         ### test on self subgroups
         metrics, c = test_model(tr=train_h, ts=train_h, trained_model=train_grp, test_data=test_slf, c=c)
-        metrics['train type'] = f'groups ~{i}'
-        metrics['test type'] = f'group {i}'
+        metrics['train type'] = f'{train_h} grp~{i}'
+        metrics['test type'] = f'{train_h} grp {i}'
 
         all_metrics.append(metrics)
 
         for test_h in all_homes:
             test_data = all_homes[test_h]
             if test_h == train_h:
-                print(f'skipping {train_h} group - {test_h} all')
+                # print(f'skipping {train_h} group - {test_h} all')
                 continue
             ## for each grp trained model, test on cross full
-            metrics, c = test_model(tr=train_h, ts=test_h, trained_model=train_grp, test_data=test_data.df, c=c)
-            # metrics['name'] = f'groups ~{i} train, cross full test'
-            metrics['train type'] = f'groups ~{i}'
-            metrics['test type'] = f'full'
-            all_metrics.append(metrics)
+            # metrics, c = test_model(tr=train_h, ts=test_h, trained_model=train_grp, test_data=test_data.df, c=c)
+            # # metrics['name'] = f'groups ~{i} train, cross full test'
+            # metrics['train type'] = f'groups ~{i}'
+            # metrics['test type'] = f'full'
+            # all_metrics.append(metrics)
 
             ## for each grp trained model, test on cross groups
             for j in range(0,len(test_data.daysets)):
                 groups = list(test_data.daysets)
                 test_crssGrp = groups.pop(j)
                 # c+=1
+                print('*****', train_h, i, test_h, j, len(train), len(test_crssGrp))
+
                 metrics, c = test_model(tr=train_h, ts=test_h, trained_model=train_grp, test_data=test_crssGrp, c=c)
                 # metrics['name'] = f'group ~{i} train, cross group {j} test'
-                metrics['train type'] = f'groups ~{i}'
-                metrics['test type'] = f'group {j}'
+                metrics['train type'] = f'{train_h} grp~{i}'
+                metrics['test type'] = f'{test_h} grp {j}'
                 all_metrics.append(metrics)
 
     ## train model on full dataset
@@ -99,26 +102,28 @@ for train_h in all_homes:
     for test_h in all_homes:
         test_data = all_homes[test_h]
         if test_h == train_h:
-            print(f'skipping {train_h} all - {test_h} all')
+            # print(f'skipping {train_h} all - {test_h} all')
             continue
-        metrics, c = test_model(tr=train_h, ts=test_h, trained_model=train_all, test_data=test_data.df, c=c)
-        # metrics['name'] = 'full train, cross full test'
-        metrics['train type'] = f'full'
-        metrics['test type'] = f'full'
-        all_metrics.append(metrics)
+        # metrics, c = test_model(tr=train_h, ts=test_h, trained_model=train_all, test_data=test_data.df, c=c)
+        # # metrics['name'] = 'full train, cross full test'
+        # metrics['train type'] = f'full'
+        # metrics['test type'] = f'full'
+        # all_metrics.append(metrics)
 
         ## for each full trained model, test on cross groups
         for k in range(0,len(test_data.daysets)):
             groups = list(test_data.daysets)
             test_crssGrp = groups.pop(k)
+            print('*****', train_h, test_h, k, len(train), len(test_crssGrp))
+
 
             metrics, c = test_model(tr=train_h, ts=test_h, trained_model=train_all, test_data=test_crssGrp, c=c)
             # metrics['name'] = f'full train, cross group {k} test'
-            metrics['train type'] = f'full'
-            metrics['test type'] = f'group {k}'
+            metrics['train type'] = f'{train_h} full'
+            metrics['test type'] = f'{test_h} grp {k}'
             all_metrics.append(metrics)
 
 
 print(f'******** total models tested: {c} ********')
 all_metrics_df = pd.concat(all_metrics)
-all_metrics_df.to_csv('~/Desktop/combined_metrics_all_homes.csv')
+all_metrics_df.to_csv('~/Desktop/combined_metrics_allHomes_discard_day1.csv')

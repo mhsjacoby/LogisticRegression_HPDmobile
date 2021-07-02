@@ -38,11 +38,12 @@ class TrainModel(ETL):
         self.train = train_data
         if self.train is None:
             super().generate_dataset(hub)
+        # self.train_length = len(self.train)
 
         self.X, self.y = self.split_xy(self.train)
-        self.model = self.train_model()
-        self.coeffs = self.format_coeffs(self.model)
-        self.non_parametric_model = self.generate_nonparametric_model()
+        # self.model = self.train_model()
+        # self.coeffs = self.format_coeffs(self.model)
+        # self.non_parametric_model = self.generate_nonparametric_model()
 
 
     def set_LR_parameters(self, k):
@@ -76,10 +77,12 @@ class TrainModel(ETL):
         X = self.X.to_numpy()
         y = self.y.to_numpy()
         logit_clf.fit(X, y)
+        self.train_score = logit_clf.score(X,y)
+
 
         if self.cv:
             self.C = logit_clf.C_[0]
-            print('all Cs', logit_clf.Cs_)
+            # print('all Cs', logit_clf.Cs_)
         return logit_clf
 
 

@@ -15,6 +15,7 @@ def baseline_OR(X, y, metrics, thresh=0.5):
 
     Returns: y_hat (predictions) and f1(rev) and accuracy
     """
+    
     base_cols = ['audio', 'img']
     full_cols =  base_cols + ['temp', 'rh', 'light', 'co2eq']
     predictions_df = pd.DataFrame(index=X.index)
@@ -30,7 +31,8 @@ def baseline_OR(X, y, metrics, thresh=0.5):
 
         predictions_df[f'prob {title.strip(" OR()")}'] = df['prob']
         predictions_df[f'pred {title.strip(" OR()")}'] = df['pred']
-  
+
+
     return predictions_df, metrics
 
 def test_with_GT(logit_clf, X_df):
@@ -55,6 +57,7 @@ def test_with_GT(logit_clf, X_df):
 def get_nonparametric_preds(model, X, thresh=0.5):
     """Return probability of occupancy, based on the nonparametric model
     """
+    # print('np preds: len X', len(X))
     X_np = X[['weekend']]
     X_np.insert(loc=1, column='time', value=X_np.index.time)
     df = X_np.merge(model, how='left', on=['weekend', 'time'])
@@ -62,6 +65,8 @@ def get_nonparametric_preds(model, X, thresh=0.5):
     df.drop(columns=['weekend', 'time'], inplace=True)
     df.columns = ['Probability']
     df['Predictions'] = df['Probability'].apply(lambda x: 1 if (x >= thresh) else 0)
+
+    # print('len preds df', len(df))
     return df
     
 
@@ -73,6 +78,7 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
     Returns: probabilities (between 0,1) and predictions (0/1) as a df
 
     """
+
     ts = int(60/min_inc)
     lag_max = hr_lag*ts
 
@@ -112,4 +118,8 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
     y_hats = pd.DataFrame(ys).set_index(0)
     y_hats.index.name = 'timestamp'
     y_hats.columns = ['Probability', 'Predictions']
+
+    # drop_day = sorted(set(y_hats.index.date))[0]
+    # y_hats = y_hats[y_hats.index.date != drop_day]
+
     return y_hats
