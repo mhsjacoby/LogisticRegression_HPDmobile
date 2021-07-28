@@ -10,6 +10,7 @@ import csv
 import json
 import argparse
 import itertools
+import pickle
 import numpy as np
 import pandas as pd
 from glob import glob
@@ -19,10 +20,14 @@ from functools import reduce
 from sklearn.metrics import confusion_matrix, f1_score, accuracy_score
 
 
-def load_model():
+def load_model(model_to_load=''):
     """ loads an already trained sklearn logit model
     """
-
+    print(f'>>> loading saved model.... {model_to_load}')
+    with open(model_to_load, 'rb') as model_file:
+        model = pickle.load(model_file)  
+    print('>>> loaded coefs:')
+    print(model.coef_)
     return model
 
 def create_test_dataset(hubs=[]):

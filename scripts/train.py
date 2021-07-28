@@ -104,7 +104,9 @@ class TrainModel(ETL):
             # print('all Cs', logit_clf.Cs_)
         # print(logit_clf)
         # sys.exit()
+        
         # self.save_model(model=logit_clf, model_name=f'ARLR_{self.H_num}')
+        # sys.exit()
 
         coefs, intercept = self.write_new_coefs(logit_clf)
         logit_clf.coef_[0] = coefs
@@ -132,16 +134,16 @@ class TrainModel(ETL):
         if not os.path.isfile(save_name):
             pickle.dump(model, open(save_name, 'wb'))
             print(f'\t>>> Writing model to {fname}')
-            logging.info(f'Writing model to {fname}')
+            # logging.info(f'Writing model to {fname}')
         else:
             pickle.dump(model, open(save_name, 'wb'))
             print(f'\t>>> Model {fname} exists. Overwriting previous')
-            logging.info(f'Overwriting previous {fname}')
+            # logging.info(f'Overwriting previous {fname}')
 
 
 
     def write_new_coefs(self, model):
-        coefs_file = '/Users/maggie/Desktop/all_results/balanced_group_results/final_model/coeffs_10.csv'
+        coefs_file = '/Users/maggie/Documents/Github/LogisticRegression_HPDmobile/FactorialAnalysis/coeffs_10.csv'
         new_coefs = pd.read_csv(coefs_file, header=None, index_col=0)
         print('====================')
         print(new_coefs)

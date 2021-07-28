@@ -91,7 +91,7 @@ def get_balanced_df(all_homes, params, fname=''):
         lag=params['lag']
         )
     coeffs = train_all.coeffs
-    coeffs.to_csv(f'/Users/maggie/Desktop/coeffs_sklearn_{fname}.csv')
+    coeffs.to_csv(f'/Users/maggie/Desktop/coefs_saved_model.csv')
     # pd.DataFrame(grp_choice_names).to_csv(f'/Users/maggie/Desktop/groups_{fname}.csv')
     s = train_statsmodel(df=train_df, fname=fname)
 

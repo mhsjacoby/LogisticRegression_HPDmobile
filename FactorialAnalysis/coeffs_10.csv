@@ -1,0 +1,18 @@
+audio        ,4.3068
+co2eq        ,-1.0129
+light        ,0.7804
+rh           ,0.687
+temp         ,1.5155
+img          ,2.503
+weekend      ,-0.2659
+hr_sin       ,0.607
+hr_cos       ,1.0737
+lag1_occupied,5.4175
+lag2_occupied,0.3172
+lag3_occupied,0.148
+lag4_occupied,0.0314
+lag5_occupied,0
+lag6_occupied,0
+lag7_occupied,0
+lag8_occupied,0.0097
+intercept    ,-4.9298
