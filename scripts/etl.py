@@ -36,10 +36,13 @@ class ETL():
     This class is used in train.py, test.py, and explore.py
     """
 
-    def __init__(self, H_num, fill_type='zeros', g=8):
+    def __init__(self, H_num, fill_type='zeros', lag=8, grp_len=8, min_inc=5, lag_type='avg'):
         self.H_num = H_num
         self.fill_type = fill_type
-        self.g = g
+        self.grp_len = grp_len
+        self.lag_type = lag_type
+        self.min_inc = min_inc
+        self.lag = lag
         self.get_directories()
 
 
@@ -49,7 +52,7 @@ class ETL():
 
         self.groups, self.all_days = self.get_days()
         self.df = self.get_data()
-        self.daysets = self.get_groups(df=self.df, g=self.g)
+        self.daysets = self.get_groups(df=self.df)
         # print(len(self.daysets))
         # sys.exit() 
         # self.train, self.test = self.get_train_test(self.df)
@@ -138,7 +141,8 @@ class ETL():
         return groups, all_days
 
 
-    def get_groups(self, df, g=8):
+    def get_groups(self, df):
+        g = self.grp_len
         daysets = []
         for grp in self.groups:
             for i in range(0,int(np.round(len(grp)/g))):
@@ -166,12 +170,17 @@ class ETL():
         df = pd.concat(all_hub_dfs).groupby(level=0).max()
 
         df = self.create_HOD(df)
-        df = self.create_rolling_lags(df)
+        if self.lag_type == 'avg':
+            df = self.create_rolling_lags(df)
+        else:
+            df = self.create_static_lags(df)
         print(len(df['day'].unique()))
         days = sorted([datetime.strptime(day_str, '%Y-%m-%d').date() for day_str in self.all_days])
 
         df_dates = df[df['day'].isin(days)]
         print(len(df_dates['day'].unique()))
+
+        
         # sys.exit()
         # df["Date"].map(pd.Timestamp.date).unique()
         # df.to_csv('~/Desktop/test_6-26/test_df.csv')
@@ -189,6 +198,9 @@ class ETL():
         df.index = pd.to_datetime(df.index)
         df = df.resample(rule=resample_rate).mean()
         df['occupied'] = df['occupied'].apply(lambda x: 1 if (x >= thresh) else 0)
+        # df = df.drop(columns=['co2eq'])
+        # print(df.columns)
+        # sys.exit()
 
         df = self.fill_df(df=df, fill_type=self.fill_type)
         return df
@@ -284,24 +296,28 @@ class ETL():
         return df
 
 
-    # def create_static_lags(self, df, lag_hours=8, min_inc=5):
-    #     """Creates lagged occupancy variable
+    def create_static_lags(self, df):# lag_hours=8, min_inc=5):
+        """Creates lagged occupancy variable
 
-    #     Takes in a df and makes lags up to (and including) lag_hours.
-    #     The df is in 5 minute increments (by default), so lag is 12*hour.
+        Takes in a df and makes lags up to (and including) lag_hours.
+        The df is in 5 minute increments (by default), so lag is 12*hour.
         
-    #     Returns: lagged df
-    #     """
-    #     ts = int(60/min_inc)
-    #     occ_series = df['occupied']
+        Returns: lagged df
+        """
+        lag_hours = self.lag
+        min_inc = self.min_inc
+        ts = int(60/min_inc)
+        occ_series = df['occupied']
 
-    #     for i in range(1, lag_hours+1):
-    #         lag_name = f'lag{i}_occupied'
-    #         df[lag_name] = occ_series.shift(periods=ts*i)
-    #     return df
+        for i in range(1, lag_hours+1):
+            lag_name = f'lag{i}_occupied'
+            df[lag_name] = occ_series.shift(periods=ts*i)
+        return df
 
 
-    def create_rolling_lags(self, df, lag_hours=8, min_inc=5):
+    def create_rolling_lags(self, df):#, lag_hours=8, min_inc=5):
+        lag_hours = self.lag
+        min_inc = self.min_inc
 
         ts = int(60/min_inc)
         df_roll = df['occupied'].rolling(window=ts).mean()

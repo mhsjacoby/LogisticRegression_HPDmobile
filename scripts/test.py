@@ -31,19 +31,22 @@ class TestModel(ETL):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, H_num, model, non_param, hub='', test_data=None, fill_type='zeros'):
+    def __init__(self, H_num, model, non_prob, hub='', test_data=None, fill_type='zeros', lag=8, min_inc=5, lag_type='avg'):
 
-        super().__init__(H_num=H_num, fill_type=fill_type)
-        
+        super().__init__(H_num=H_num, fill_type=fill_type, lag=lag, min_inc=min_inc, lag_type=lag_type)
+        print(f'$$$$$$$$$$ lag = {self.lag}')
         self.test = test_data
+        # self.lag_type = lag_type
         if self.test is None:
             super().generate_dataset(hub)
+
+
         
         self.X, self.y = self.split_xy(self.test)
         self.metrics = None
         self.yhat = None
         self.predictions = None
-        self.test_models(clf=model, non_param_model=non_param)
+        self.test_models(clf=model, non_prob=non_prob)
 
 
     def drop_day(self, df, name):
@@ -54,11 +57,13 @@ class TestModel(ETL):
         return df
 
 
-    def test_models(self, clf, non_param_model):
+    def test_models(self, clf, non_prob=None):
         """Test the trained model on unseen data
 
         Returns: nothing
         """
+        print(f'>>>>>>>> Using model coeffs:\n{clf.coef_}\n{clf.intercept_}')
+        # sys.exit()
         # print(self.y)
         self.y = self.drop_day(self.y, name='y')
         y = self.y.to_numpy()
@@ -68,12 +73,12 @@ class TestModel(ETL):
         predictions_df, metrics = pred_fncs.baseline_OR(X=drop_X, y=y, metrics=metrics)
         # predictions_df = self.drop_day(predictions_df)
 
-        np_df = pred_fncs.get_nonparametric_preds(X=self.X, model=non_param_model)
+        np_df = pred_fncs.get_np_preds(X=self.X, model=non_prob)
         np_df = self.drop_day(np_df, name='np')
         np_yhat = np_df['Predictions'].to_numpy()
         print('np')
         np_results, np_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=np_yhat)
-        metrics['Nonparametric'] = np_metrics
+        metrics['NP'] = np_metrics
         predictions_df['prob np'] = np_df['Probability']
         predictions_df['pred np'] = np_df['Predictions']
 
@@ -86,7 +91,12 @@ class TestModel(ETL):
         predictions_df['prob gt-AR'] = gt_df['Probability']
         predictions_df['pred gt-AR'] = gt_df['Predictions']     
 
-        self.df = pred_fncs.test_with_predictions(logit_clf=clf, X=self.X)
+
+        if self.lag_type == 'avg':
+            pred_func = pred_fncs.test_with_predictions
+        else:
+            pred_func = pred_fncs.test_with_static_lag
+        self.df = pred_func(logit_clf=clf, X=self.X, hr_lag=self.lag)
         self.df = self.drop_day(self.df, name='ar')
         self.yhat = self.df['Predictions'].to_numpy()
         print('ar')
@@ -101,6 +111,8 @@ class TestModel(ETL):
         self.metrics = pd.DataFrame(metrics).transpose()
         # print(self.metrics)
         self.predictions = predictions_df
+
+        # 
         
 
     # def import_model(self, model_to_test):

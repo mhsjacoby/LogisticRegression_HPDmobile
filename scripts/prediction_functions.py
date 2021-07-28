@@ -18,6 +18,8 @@ def baseline_OR(X, y, metrics, thresh=0.5):
     
     base_cols = ['audio', 'img']
     full_cols =  base_cols + ['temp', 'rh', 'light', 'co2eq']
+    # full_cols =  base_cols + ['temp', 'rh', 'light']
+
     predictions_df = pd.DataFrame(index=X.index)
 
     for cols, title in zip([base_cols, full_cols], ('OR (ai)', 'OR (aie)')):
@@ -54,8 +56,8 @@ def test_with_GT(logit_clf, X_df):
     return df
 
 
-def get_nonparametric_preds(model, X, thresh=0.5):
-    """Return probability of occupancy, based on the nonparametric model
+def get_np_preds(model, X, thresh=0.5):
+    """Return probability of occupancy, based on the non-probabilistic model
     """
     # print('np preds: len X', len(X))
     X_np = X[['weekend']]
@@ -69,6 +71,42 @@ def get_nonparametric_preds(model, X, thresh=0.5):
     # print('len preds df', len(df))
     return df
     
+
+def test_with_static_lag(logit_clf, X, hr_lag=8, min_inc=5):
+    """Run data through classifier and push predictions forward as lag values
+    This is used instead of get_predictions_wGT.
+    Returns: probabilities (between 0,1) and predictions (0/1) as a df
+    """
+    """Run data through classifier and push predictions forward as lag values
+    This is used instead of get_predictions_wGT.
+    Returns: probabilities (between 0,1) and predictions (0/1) as a df
+    """
+    ts = int(60/min_inc)
+    lag_max = hr_lag*ts
+    X_start = X.iloc[:lag_max]
+    lag_cols=[c for c in X.columns if c.startswith('lag')]
+    exog_vars = X.drop(columns=lag_cols).iloc[lag_max:]
+    preds_X = pd.concat([X_start, exog_vars])
+    preds_X.index = pd.to_datetime(preds_X.index)
+    ys = []
+    for idx, _ in preds_X.iterrows():
+        df_row = preds_X.loc[idx]
+        curr_row = df_row.to_numpy().reshape(1,-1)
+        y_hat = logit_clf.predict(curr_row)
+        y_proba = logit_clf.predict_proba(curr_row)[:,1]
+        idx_loc = preds_X.index.get_loc(idx)
+        for j in range(1, hr_lag + 1):
+            lag_col_name = f'lag{j}_occupied'
+            ind_to_set = idx_loc + j*ts
+            try:
+                preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = y_hat[0]
+            except:
+                continue
+        ys.append((idx, y_proba[0], y_hat[0]))
+    y_hats = pd.DataFrame(ys).set_index(0)
+    y_hats.index.name = 'timestamp'
+    y_hats.columns = ['Probability', 'Predictions']
+    return y_hats
 
 
 def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
@@ -114,6 +152,12 @@ def test_with_predictions(logit_clf, X, hr_lag=8, min_inc=5):
                 preds_X.at[preds_X.iloc[ind_to_set].name, lag_col_name] = df_roll
             except:
                 continue
+        # if k == 300:
+            
+        #     preds_X.head(300).to_csv('~/Desktop/test_predictions.csv')
+        #     print('-----------------------------')
+        #     print(df_roll)
+        #     sys.exit()
 
     y_hats = pd.DataFrame(ys).set_index(0)
     y_hats.index.name = 'timestamp'
