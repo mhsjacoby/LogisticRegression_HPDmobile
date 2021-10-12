@@ -31,22 +31,20 @@ class TestModel(ETL):
     Can cross train and test on different homes, or same home.
     """
 
-    def __init__(self, H_num, model, non_prob, hub='', test_data=None, fill_type='zeros', lag=8, min_inc=5, lag_type='avg'):
+    def __init__(self, H_num, hub='', test_data=None, fill_type='zeros', lag=8, min_inc=5, lag_type='avg'):
 
         super().__init__(H_num=H_num, fill_type=fill_type, lag=lag, min_inc=min_inc, lag_type=lag_type)
-        print(f'$$$$$$$$$$ lag = {self.lag}')
+        print(f'>>> using lag = {self.lag}')
         self.test = test_data
         # self.lag_type = lag_type
         if self.test is None:
             super().generate_dataset(hub)
 
-
-        
         self.X, self.y = self.split_xy(self.test)
         self.metrics = None
         self.yhat = None
         self.predictions = None
-        self.test_models(clf=model, non_prob=non_prob)
+        # self.test_models(clf=model, non_prob=non_prob)
 
 
     def drop_day(self, df, name):
@@ -112,8 +110,26 @@ class TestModel(ETL):
         # print(self.metrics)
         self.predictions = predictions_df
 
-        # 
-        
+
+
+    def test_single(self, clf):
+        """Test the trained model on unseen data
+
+        Returns: nothing
+        """
+
+        self.y = self.drop_day(self.y, name='y')
+        y = self.y.to_numpy()    
+        self.df = pred_fncs.test_with_predictions(logit_clf=clf, X=self.X, hr_lag=self.lag)
+        self.df = self.drop_day(self.df, name='ar')
+        self.yhat = self.df['Predictions'].to_numpy()
+        results, pred_metrics = my_metrics.get_model_metrics(y_true=y, y_hat=self.yhat)
+
+        print('================ results')
+        print(results)
+        print('================ metrics')
+        print(pred_metrics)
+
 
     # def import_model(self, model_to_test):
     #     """Imports the trained model from pickle file

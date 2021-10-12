@@ -44,13 +44,23 @@ class ETL():
         self.min_inc = min_inc
         self.lag = lag
         self.get_directories()
-
-
-    def generate_dataset(self, hub=''):
         self.home_configs = self.read_config(config_type='etl')
-        self.hubs_to_use = self.get_hubs(hub)
+        self.all_hubs = self.get_hubs()
+        # self.groups, self.all_days = self.get_days()
+
+
+    def generate_dataset(self, hub='', mod='hub'):
+        if len(hub) > 0:
+            self.hubs_to_use = hub
+        else:
+            self.hubs_to_use = self.all_hubs
+        
+        print(f'all hubs: {self.all_hubs}')
+        print(f'Using hubs: {self.hubs_to_use}')
+        self.home_configs = self.read_config(config_type='etl')
 
         self.groups, self.all_days = self.get_days()
+        self.all_hub_data = self.read_all_hubs(mod=mod)
         self.df = self.get_data()
         self.daysets = self.get_groups(df=self.df)
         # print(len(self.daysets))
@@ -100,24 +110,16 @@ class ETL():
         return config
 
 
-    def get_hubs(self, hub):
+    def get_hubs(self):
         """Returns a list of the hubs to use.
         If a hub is initially specified, returns just that as a list,
         otherwise looks in configuration file and creates a list
         """
-
-        if len(hub) > 0:
-            hubs_to_use = [hub]
-
-        else:
-            color = self.home_configs['H_system'][0].upper()
-            hubs_to_use = []
-            for num in self.home_configs['hubs']:
-                hubs_to_use.append(f'{color}S{num}')
-
-        print(f'Using hubs: {hubs_to_use}')
-
-        return hubs_to_use
+        color = self.home_configs['H_system'][0].upper()
+        all_hubs = []
+        for num in self.home_configs['hubs']:
+            all_hubs.append(f'{color}S{num}')
+        return all_hubs
 
 
     def get_days(self):
@@ -153,22 +155,76 @@ class ETL():
         return daysets
             
 
+    def read_all_hubs(self, mod='hub'):
+        # print(f'Creating new datasets for {self.H_num}...')
+        all_hub_dfs = []
+
+        if mod == 'hub': # research question 2b
+            for hub in self.hubs_to_use:
+                hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
+                print(f'.... reading {hub_path}')
+                hub_df = self.read_infs(data_path=hub_path)
+                all_hub_dfs.append(hub_df)
+        
+        elif mod in ('audio', 'img'):
+            for hub in self.all_hubs:
+                hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
+                print(f'.... reading {hub_path}')
+                hub_df = self.read_infs(data_path=hub_path)
+                if hub in self.hubs_to_use:
+                    print(f'>>> removing {mod} from {hub}')
+                    hub_df[mod] = 0.0
+                all_hub_dfs.append(hub_df)
+
+        elif mod == 'env':
+            for hub in self.all_hubs:
+                hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
+                print(f'.... reading {hub_path}')
+                hub_df = self.read_infs(data_path=hub_path)
+                if hub in self.hubs_to_use:
+                    print(f'>>> removing {mod} from {hub}')
+                    for e_mod in ['co2eq', 'light', 'rh', 'temp']:
+                        hub_df[e_mod] = 0.0
+                all_hub_dfs.append(hub_df)
+
+        elif mod == 'audio-img': # research question 1
+            mod1, mod2 = 'audio', 'img'
+            for hub in self.all_hubs:
+                hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
+                print(f'.... reading {hub_path}')
+                hub_df = self.read_infs(data_path=hub_path)
+                if hub in self.hubs_to_use:
+                    print(f'>>> removing {mod1} from {hub}')
+                    hub_df[mod1] = 0.0
+                else:
+                    print(f'>>> removing {mod2} from {hub}')
+                    hub_df[mod2] = 0.0
+                all_hub_dfs.append(hub_df)    
+
+        elif mod == 'best-env': # research question 2a
+            mod1, mod2 = 'audio', 'img'
+            for hub in self.all_hubs:
+                hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
+                print(f'.... reading {hub_path}')
+                hub_df = self.read_infs(data_path=hub_path)
+                if hub in self.hubs_to_use:
+                    print(f'>>> removing {mod1} and {mod2} from {hub}')
+                    hub_df[mod1] = 0.0
+                    hub_df[mod2] = 0.0
+                all_hub_dfs.append(hub_df)   
+
+        return all_hub_dfs    
+
+
+
+    
+
     def get_data(self):
         """Reads raw inferences for all hubs, creates dfs (including lags) and combines hubs.
 
         Returns: pandas df (with all days)
         """ 
-
-        print(f'Creating new datasets for {self.H_num}...')
-        all_hub_dfs = []
-
-        for hub in self.hubs_to_use:
-            hub_path = os.path.join(self.raw_data, self.H_num, f'{self.H_num}{hub}.csv')
-            hub_df = self.read_infs(data_path=hub_path)
-            all_hub_dfs.append(hub_df)
-
-        df = pd.concat(all_hub_dfs).groupby(level=0).max()
-
+        df = pd.concat(self.all_hub_data).groupby(level=0).max()
         df = self.create_HOD(df)
         if self.lag_type == 'avg':
             df = self.create_rolling_lags(df)
@@ -194,6 +250,7 @@ class ETL():
 
         Returns: pandas df
         """
+        
         df = pd.read_csv(data_path, index_col='timestamp')
         df.index = pd.to_datetime(df.index)
         df = df.resample(rule=resample_rate).mean()
